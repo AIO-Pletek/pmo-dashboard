@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -13,20 +7,79 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model Customer {
+  id        String    @id @default(cuid())
+  name      String
+  company   String
+  industry  String    @default("")
+  email     String    @default("")
+  phone     String    @default("")
+  address   String    @default("")
+  notes     String    @default("")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  projects  Project[]
 }
 
-model Post {
-  id        String   @id @default(cuid())
-  title     String
-  content   String?
-  published Boolean  @default(false)
-  authorId  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model Project {
+  id          String    @id @default(cuid())
+  name        String
+  customerId  String
+  category    String    @default("ONGOING_CUSTOMER") // ONGOING_CUSTOMER, POC_CUSTOMER
+  status      String    @default("PLANNING") // PLANNING, IN_PROGRESS, ON_HOLD, COMPLETED, CANCELLED
+  description String    @default("")
+  startDate   DateTime?
+  endDate     DateTime?
+  progress    Int       @default(0)
+  budget      Float     @default(0)
+  priority    String    @default("MEDIUM") // LOW, MEDIUM, HIGH, CRITICAL
+  notes       String    @default("")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  customer    Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  timelines   Timeline[]
+  reports     Report[]
+  excelFiles  ExcelFile[]
+}
+
+model Timeline {
+  id          String    @id @default(cuid())
+  projectId   String
+  taskName    String
+  startDate   DateTime?
+  endDate     DateTime?
+  status      String    @default("NOT_STARTED") // NOT_STARTED, IN_PROGRESS, COMPLETED, DELAYED
+  progress    Int       @default(0)
+  assignee    String    @default("")
+  notes       String    @default("")
+  taskOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model Report {
+  id          String    @id @default(cuid())
+  projectId   String
+  title       String
+  type        String    @default("WEEKLY") // WEEKLY, MONTHLY, MILESTONE, FINAL
+  content     String    @default("")
+  status      String    @default("DRAFT") // DRAFT, SUBMITTED, APPROVED
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model ExcelFile {
+  id          String    @id @default(cuid())
+  projectId   String
+  fileName    String
+  filePath    String
+  uploadedAt  DateTime  @default(now())
+
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
