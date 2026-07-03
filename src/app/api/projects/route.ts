@@ -63,11 +63,24 @@ export async function POST(request: NextRequest) {
       budget,
       priority,
       notes,
+      picInternalName,
+      picInternalDivisionId,
+      picExternalName,
+      pendingType,
+      pendingNote,
     } = body
 
     if (!name || !customerId || !category) {
       return NextResponse.json(
         { error: 'Name, customerId, and category are required' },
+        { status: 400 }
+      )
+    }
+
+    const validPendingTypes = ['NONE', 'INTERNAL', 'EXTERNAL']
+    if (pendingType && !validPendingTypes.includes(pendingType)) {
+      return NextResponse.json(
+        { error: 'pendingType must be one of: NONE, INTERNAL, EXTERNAL' },
         { status: 400 }
       )
     }
@@ -82,6 +95,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    if (picInternalDivisionId) {
+      const divisionExists = await db.division.findUnique({
+        where: { id: picInternalDivisionId },
+      })
+      if (!divisionExists) {
+        return NextResponse.json(
+          { error: 'Division not found' },
+          { status: 400 }
+        )
+      }
+    }
+
     const project = await db.project.create({
       data: {
         name,
@@ -94,6 +119,11 @@ export async function POST(request: NextRequest) {
         budget: budget ?? 0,
         priority: priority || 'MEDIUM',
         notes: notes || '',
+        picInternalName: picInternalName || '',
+        picInternalDivisionId: picInternalDivisionId || null,
+        picExternalName: picExternalName || '',
+        pendingType: pendingType || 'NONE',
+        pendingNote: pendingNote || '',
       },
     })
 

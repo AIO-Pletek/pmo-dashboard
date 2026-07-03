@@ -10,6 +10,8 @@ export async function GET() {
       projectsByStatusRaw,
       recentProjects,
       upcomingDeadlines,
+      pendingByTypeRaw,
+      divisionsSummaryRaw,
     ] = await Promise.all([
       db.customer.count(),
       db.project.count(),
@@ -34,6 +36,16 @@ export async function GET() {
         orderBy: { endDate: 'asc' },
         take: 5,
         include: { customer: true },
+      }),
+      db.project.groupBy({
+        by: ['pendingType'],
+        _count: { pendingType: true },
+      }),
+      db.division.findMany({
+        select: {
+          id: true,
+          name: true,
+        },
       }),
     ])
 
@@ -74,6 +86,46 @@ export async function GET() {
       if (!projectsByStatus[s]) projectsByStatus[s] = 0
     }
 
+    // Convert pendingByType groupBy to Record, ensuring all keys present
+    const pendingByType: Record<string, number> = {
+      NONE: 0,
+      INTERNAL: 0,
+      EXTERNAL: 0,
+    }
+    for (const item of pendingByTypeRaw) {
+      pendingByType[item.pendingType] = item._count.pendingType
+    }
+
+    // Build divisionsSummary with both internal and external pending counts
+    const divisionsSummary = await Promise.all(
+      divisionsSummaryRaw.map(async (d) => {
+        const [internalCount, externalCount, totalProjects] = await Promise.all([
+          db.project.count({
+            where: {
+              picInternalDivisionId: d.id,
+              pendingType: 'INTERNAL',
+            },
+          }),
+          db.project.count({
+            where: {
+              picInternalDivisionId: d.id,
+              pendingType: 'EXTERNAL',
+            },
+          }),
+          db.project.count({
+            where: { picInternalDivisionId: d.id },
+          }),
+        ])
+        return {
+          id: d.id,
+          name: d.name,
+          totalProjects,
+          pendingInternal: internalCount,
+          pendingExternal: externalCount,
+        }
+      })
+    )
+
     return NextResponse.json({
       totalCustomers,
       totalProjects,
@@ -81,6 +133,8 @@ export async function GET() {
       projectsByStatus,
       recentProjects: recentProjects.map(formatProject),
       upcomingDeadlines: upcomingDeadlines.map(formatProject),
+      pendingByType,
+      divisionsSummary,
     })
   } catch (error) {
     console.error('Dashboard API error:', error)

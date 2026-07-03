@@ -9,6 +9,7 @@ import { ProjectManagement } from '@/components/pmo/project-management';
 import { ProjectDetail } from '@/components/pmo/project-detail';
 import { ReportManagement } from '@/components/pmo/report-management';
 import { ExcelUpload } from '@/components/pmo/excel-upload';
+import { DivisionPanel } from '@/components/pmo/division-panel';
 import type { ViewType } from '@/components/pmo/types';
 
 // Create QueryClient
@@ -64,6 +65,8 @@ function PMOApp() {
         return <ReportManagement />;
       case 'upload':
         return <ExcelUpload />;
+      case 'divisions':
+        return <DivisionPanel onProjectClick={handleProjectClick} />;
       default:
         return null;
     }

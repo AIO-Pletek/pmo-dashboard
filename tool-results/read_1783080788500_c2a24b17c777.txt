@@ -1,0 +1,1352 @@
+     1→     1→'use client';
+     2→     2→
+     3→     3→import { useState } from 'react';
+     4→     4→import { motion } from 'framer-motion';
+     5→     5→import {
+     6→     6→  format,
+     7→     7→  differenceInDays,
+     8→     8→  differenceInBusinessDays,
+     9→     9→  isAfter,
+    10→    10→  isBefore,
+    11→    11→  addDays,
+    12→    12→} from 'date-fns';
+    13→    13→import {
+    14→    14→  ArrowLeft,
+    15→    15→  Calendar,
+    16→    16→  DollarSign,
+    17→    17→  User,
+    18→    18→  FileText,
+    19→    19→  Clock,
+    20→    20→  Plus,
+    21→    21→  Pencil,
+    22→    22→  Trash2,
+    23→    23→  GripVertical,
+    24→    24→  CheckCircle2,
+    25→    25→  Play,
+    26→    26→  Pause,
+    27→    27→  Building2,
+    28→    28→  Phone,
+    29→    29→  Mail,
+    30→    30→  Briefcase,
+    31→    31→  BarChart3,
+    32→    32→  Timer,
+    33→    33→  ListTree,
+    34→    34→} from 'lucide-react';
+    35→    35→import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+    36→    36→import { Button } from '@/components/ui/button';
+    37→    37→import { Input } from '@/components/ui/input';
+    38→    38→import { Label } from '@/components/ui/label';
+    39→    39→import { Textarea } from '@/components/ui/textarea';
+    40→    40→import { Badge } from '@/components/ui/badge';
+    41→    41→import { Progress } from '@/components/ui/progress';
+    42→    42→import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+    43→    43→import { Separator } from '@/components/ui/separator';
+    44→    44→import {
+    45→    45→  Select,
+    46→    46→  SelectContent,
+    47→    47→  SelectItem,
+    48→    48→  SelectTrigger,
+    49→    49→  SelectValue,
+    50→    50→} from '@/components/ui/select';
+    51→    51→import {
+    52→    52→  Dialog,
+    53→    53→  DialogContent,
+    54→    54→  DialogHeader,
+    55→    55→  DialogTitle,
+    56→    56→  DialogFooter,
+    57→    57→} from '@/components/ui/dialog';
+    58→    58→import {
+    59→    59→  AlertDialog,
+    60→    60→  AlertDialogAction,
+    61→    61→  AlertDialogCancel,
+    62→    62→  AlertDialogContent,
+    63→    63→  AlertDialogDescription,
+    64→    64→  AlertDialogFooter,
+    65→    65→  AlertDialogHeader,
+    66→    66→  AlertDialogTitle,
+    67→    67→} from '@/components/ui/alert-dialog';
+    68→    68→import { Skeleton } from '@/components/ui/skeleton';
+    69→    69→import { cn } from '@/lib/utils';
+    70→    70→import {
+    71→    71→  useProject,
+    72→    72→  useTimelines,
+    73→    73→  useCreateTimeline,
+    74→    74→  useUpdateTimeline,
+    75→    75→  useDeleteTimeline,
+    76→    76→  useCreateReport,
+    77→    77→  useDeleteReport,
+    78→    78→  useReports,
+    79→    79→  useUpdateProject,
+    80→    80→} from './use-pmo-data';
+    81→    81→import {
+    82→    82→  STATUS_LABELS,
+    83→    83→  CATEGORY_LABELS,
+    84→    84→  PRIORITY_LABELS,
+    85→    85→  TIMELINE_STATUS_LABELS,
+    86→    86→  REPORT_TYPE_LABELS,
+    87→    87→  REPORT_STATUS_LABELS,
+    88→    88→  REPORT_TYPES,
+    89→    89→  REPORT_STATUSES,
+    90→    90→  TIMELINE_STATUSES,
+    91→    91→  type Timeline,
+    92→    92→  type TimelineStatus,
+    93→    93→  type ReportType,
+    94→    94→  type ReportStatus,
+    95→    95→} from './types';
+    96→    96→
+    97→    97→// ==========================================
+    98→    98→// Helpers
+    99→    99→// ==========================================
+   100→   100→
+   101→   101→function getStatusClass(status: string) {
+   102→   102→  switch (status) {
+   103→   103→    case 'IN_PROGRESS':
+   104→   104→      return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300';
+   105→   105→    case 'COMPLETED':
+   106→   106→      return 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300';
+   107→   107→    case 'ON_HOLD':
+   108→   108→      return 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300';
+   109→   109→    case 'CANCELLED':
+   110→   110→      return 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300';
+   111→   111→    default:
+   112→   112→      return 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300';
+   113→   113→  }
+   114→   114→}
+   115→   115→
+   116→   116→function getCategoryClass(category: string) {
+   117→   117→  switch (category) {
+   118→   118→    case 'ONGOING_CUSTOMER':
+   119→   119→      return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300';
+   120→   120→    case 'POC_CUSTOMER':
+   121→   121→      return 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300';
+   122→   122→    default:
+   123→   123→      return '';
+   124→   124→  }
+   125→   125→}
+   126→   126→
+   127→   127→function getPriorityClass(priority: string) {
+   128→   128→  switch (priority) {
+   129→   129→    case 'LOW':
+   130→   130→      return 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300';
+   131→   131→    case 'MEDIUM':
+   132→   132→      return 'bg-teal-100 text-teal-700 dark:bg-teal-950 dark:text-teal-300';
+   133→   133→    case 'HIGH':
+   134→   134→      return 'bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300';
+   135→   135→    case 'CRITICAL':
+   136→   136→      return 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300';
+   137→   137→    default:
+   138→   138→      return '';
+   139→   139→  }
+   140→   140→}
+   141→   141→
+   142→   142→function getTimelineStatusClass(status: string) {
+   143→   143→  switch (status) {
+   144→   144→    case 'IN_PROGRESS':
+   145→   145→      return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300';
+   146→   146→    case 'COMPLETED':
+   147→   147→      return 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300';
+   148→   148→    case 'DELAYED':
+   149→   149→      return 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300';
+   150→   150→    default:
+   151→   151→      return 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300';
+   152→   152→  }
+   153→   153→}
+   154→   154→
+   155→   155→function getGanttBarColor(status: string) {
+   156→   156→  switch (status) {
+   157→   157→    case 'COMPLETED':
+   158→   158→      return 'bg-emerald-500';
+   159→   159→    case 'IN_PROGRESS':
+   160→   160→      return 'bg-amber-500';
+   161→   161→    case 'DELAYED':
+   162→   162→      return 'bg-red-500';
+   163→   163→    default:
+   164→   164→      return 'bg-gray-300 dark:bg-gray-600';
+   165→   165→  }
+   166→   166→}
+   167→   167→
+   168→   168→function getProgressColor(progress: number) {
+   169→   169→  if (progress >= 80) return '[&>div]:bg-green-500';
+   170→   170→  if (progress >= 50) return '[&>div]:bg-emerald-500';
+   171→   171→  if (progress >= 25) return '[&>div]:bg-amber-500';
+   172→   172→  return '[&>div]:bg-gray-400';
+   173→   173→}
+   174→   174→
+   175→   175→function formatIDR(amount: number): string {
+   176→   176→  return new Intl.NumberFormat('id-ID', {
+   177→   177→    style: 'currency',
+   178→   178→    currency: 'IDR',
+   179→   179→    minimumFractionDigits: 0,
+   180→   180→    maximumFractionDigits: 0,
+   181→   181→  }).format(amount);
+   182→   182→}
+   183→   183→
+   184→   184→// ==========================================
+   185→   185→// Component
+   186→   186→// ==========================================
+   187→   187→
+   188→   188→interface ProjectDetailProps {
+   189→   189→  projectId: string;
+   190→   190→  onBack: () => void;
+   191→   191→}
+   192→   192→
+   193→   193→export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
+   194→   194→  const [activeTab, setActiveTab] = useState('overview');
+   195→   195→
+   196→   196→  // Timeline state
+   197→   197→  const [isTimelineOpen, setIsTimelineOpen] = useState(false);
+   198→   198→  const [editingTimeline, setEditingTimeline] = useState<Timeline | null>(null);
+   199→   199→  const [deleteTimelineTarget, setDeleteTimelineTarget] = useState<Timeline | null>(null);
+   200→   200→  const [timelineForm, setTimelineForm] = useState({
+   201→   201→    taskName: '',
+   202→   202→    startDate: '',
+   203→   203→    endDate: '',
+   204→   204→    status: 'NOT_STARTED' as TimelineStatus,
+   205→   205→    progress: 0,
+   206→   206→    assignee: '',
+   207→   207→    notes: '',
+   208→   208→    taskOrder: 0,
+   209→   209→  });
+   210→   210→
+   211→   211→  // Report state
+   212→   212→  const [isReportOpen, setIsReportOpen] = useState(false);
+   213→   213→  const [reportForm, setReportForm] = useState({
+   214→   214→    title: '',
+   215→   215→    type: 'WEEKLY' as ReportType,
+   216→   216→    content: '',
+   217→   217→    status: 'DRAFT' as ReportStatus,
+   218→   218→  });
+   219→   219→
+   220→   220→  const { data: projectData, isLoading } = useProject(projectId);
+   221→   221→  const { data: timelinesData } = useTimelines(projectId);
+   222→   222→  const { data: reportsData } = useReports({ projectId });
+   223→   223→
+   224→   224→  const createTimeline = useCreateTimeline();
+   225→   225→  const updateTimeline = useUpdateTimeline();
+   226→   226→  const deleteTimeline = useDeleteTimeline();
+   227→   227→  const createReport = useCreateReport();
+   228→   228→  const deleteReport = useDeleteReport();
+   229→   229→  const updateProject = useUpdateProject();
+   230→   230→
+   231→   231→  const project = projectData?.data;
+   232→   232→  const timelines = timelinesData?.data || [];
+   233→   233→  const reports = reportsData?.data || [];
+   234→   234→
+   235→   235→  // Computed values
+   236→   236→  const totalDays =
+   237→   237→    project?.startDate && project?.endDate
+   238→   238→      ? differenceInDays(new Date(project.endDate), new Date(project.startDate))
+   239→   239→      : null;
+   240→   240→
+   241→   241→  const businessDays =
+   242→   242→    project?.startDate && project?.endDate
+   243→   243→      ? differenceInBusinessDays(new Date(project.endDate), new Date(project.startDate))
+   244→   244→      : null;
+   245→   245→
+   246→   246→  // Quick action handlers
+   247→   247→  const handleMarkComplete = () => {
+   248→   248→    if (!project) return;
+   249→   249→    updateProject.mutate({ id: project.id, status: 'COMPLETED', progress: 100 });
+   250→   250→  };
+   251→   251→
+   252→   252→  const handleSetInProgress = () => {
+   253→   253→    if (!project) return;
+   254→   254→    updateProject.mutate({ id: project.id, status: 'IN_PROGRESS' });
+   255→   255→  };
+   256→   256→
+   257→   257→  const handlePutOnHold = () => {
+   258→   258→    if (!project) return;
+   259→   259→    updateProject.mutate({ id: project.id, status: 'ON_HOLD' });
+   260→   260→  };
+   261→   261→
+   262→   262→  // Timeline handlers
+   263→   263→  const openCreateTimeline = () => {
+   264→   264→    setEditingTimeline(null);
+   265→   265→    setTimelineForm({
+   266→   266→      taskName: '',
+   267→   267→      startDate: '',
+   268→   268→      endDate: '',
+   269→   269→      status: 'NOT_STARTED',
+   270→   270→      progress: 0,
+   271→   271→      assignee: '',
+   272→   272→      notes: '',
+   273→   273→      taskOrder: timelines.length,
+   274→   274→    });
+   275→   275→    setIsTimelineOpen(true);
+   276→   276→  };
+   277→   277→
+   278→   278→  const openEditTimeline = (tl: Timeline) => {
+   279→   279→    setEditingTimeline(tl);
+   280→   280→    setTimelineForm({
+   281→   281→      taskName: tl.taskName,
+   282→   282→      startDate: tl.startDate ? format(new Date(tl.startDate), 'yyyy-MM-dd') : '',
+   283→   283→      endDate: tl.endDate ? format(new Date(tl.endDate), 'yyyy-MM-dd') : '',
+   284→   284→      status: tl.status,
+   285→   285→      progress: tl.progress,
+   286→   286→      assignee: tl.assignee,
+   287→   287→      notes: tl.notes,
+   288→   288→      taskOrder: tl.taskOrder,
+   289→   289→    });
+   290→   290→    setIsTimelineOpen(true);
+   291→   291→  };
+   292→   292→
+   293→   293→  const handleTimelineSubmit = () => {
+   294→   294→    if (!timelineForm.taskName.trim()) return;
+   295→   295→    const payload = {
+   296→   296→      ...timelineForm,
+   297→   297→      projectId,
+   298→   298→      startDate: timelineForm.startDate ? new Date(timelineForm.startDate).toISOString() : null,
+   299→   299→      endDate: timelineForm.endDate ? new Date(timelineForm.endDate).toISOString() : null,
+   300→   300→    };
+   301→   301→    if (editingTimeline) {
+   302→   302→      updateTimeline.mutate({ id: editingTimeline.id, ...payload });
+   303→   303→    } else {
+   304→   304→      createTimeline.mutate(payload);
+   305→   305→    }
+   306→   306→    setIsTimelineOpen(false);
+   307→   307→  };
+   308→   308→
+   309→   309→  // Report handlers
+   310→   310→  const handleReportSubmit = () => {
+   311→   311→    if (!reportForm.title.trim()) return;
+   312→   312→    createReport.mutate({ ...reportForm, projectId });
+   313→   313→    setIsReportOpen(false);
+   314→   314→    setReportForm({ title: '', type: 'WEEKLY', content: '', status: 'DRAFT' });
+   315→   315→  };
+   316→   316→
+   317→   317→  if (isLoading) {
+   318→   318→    return (
+   319→   319→      <div className="space-y-6">
+   320→   320→        <Skeleton className="h-8 w-32" />
+   321→   321→        <Skeleton className="h-40 w-full" />
+   322→   322→        <Skeleton className="h-60 w-full" />
+   323→   323→      </div>
+   324→   324→    );
+   325→   325→  }
+   326→   326→
+   327→   327→  if (!project) {
+   328→   328→    return (
+   329→   329→      <div className="flex flex-col items-center justify-center gap-4 py-16">
+   330→   330→        <p className="text-muted-foreground">Project not found</p>
+   331→   331→        <Button variant="outline" onClick={onBack}>
+   332→   332→          <ArrowLeft className="mr-2 h-4 w-4" />
+   333→   333→          Go Back
+   334→   334→        </Button>
+   335→   335→      </div>
+   336→   336→    );
+   337→   337→  }
+   338→   338→
+   339→   339→  // Compute project date range for Gantt bar calculations
+   340→   340→  const projectStart = project.startDate ? new Date(project.startDate).getTime() : null;
+   341→   341→  const projectEnd = project.endDate ? new Date(project.endDate).getTime() : null;
+   342→   342→  const projectRangeMs = projectStart && projectEnd ? projectEnd - projectStart : null;
+   343→   343→
+   344→   344→  return (
+   345→   345→    <motion.div
+   346→   346→      initial={{ opacity: 0, x: 20 }}
+   347→   347→      animate={{ opacity: 1, x: 0 }}
+   348→   348→      transition={{ duration: 0.3 }}
+   349→   349→      className="space-y-6"
+   350→   350→    >
+   351→   351→      {/* Back Button */}
+   352→   352→      <Button variant="ghost" size="sm" onClick={onBack} className="gap-2">
+   353→   353→        <ArrowLeft className="h-4 w-4" />
+   354→   354→        Back to Projects
+   355→   355→      </Button>
+   356→   356→
+   357→   357→      {/* Project Header */}
+   358→   358→      <Card>
+   359→   359→        <CardContent className="p-6">
+   360→   360→          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+   361→   361→            <div className="space-y-2 min-w-0">
+   362→   362→              <h2 className="text-2xl font-bold tracking-tight truncate">{project.name}</h2>
+   363→   363→              <p className="text-sm text-muted-foreground">
+   364→   364→                {project.customer?.company} — {project.customer?.name}
+   365→   365→              </p>
+   366→   366→              <div className="flex flex-wrap items-center gap-2">
+   367→   367→                <Badge
+   368→   368→                  variant="secondary"
+   369→   369→                  className={cn('font-medium', getCategoryClass(project.category))}
+   370→   370→                >
+   371→   371→                  {CATEGORY_LABELS[project.category]}
+   372→   372→                </Badge>
+   373→   373→                <Badge
+   374→   374→                  variant="secondary"
+   375→   375→                  className={cn('font-medium', getStatusClass(project.status))}
+   376→   376→                >
+   377→   377→                  {STATUS_LABELS[project.status]}
+   378→   378→                </Badge>
+   379→   379→                <Badge
+   380→   380→                  variant="secondary"
+   381→   381→                  className={cn('font-medium', getPriorityClass(project.priority))}
+   382→   382→                >
+   383→   383→                  {PRIORITY_LABELS[project.priority]}
+   384→   384→                </Badge>
+   385→   385→              </div>
+   386→   386→            </div>
+   387→   387→            <div className="flex items-center gap-6 text-sm text-muted-foreground shrink-0">
+   388→   388→              {project.budget > 0 && (
+   389→   389→                <div className="flex items-center gap-1.5">
+   390→   390→                  <DollarSign className="h-4 w-4" />
+   391→   391→                  <span className="font-medium text-foreground">{formatIDR(project.budget)}</span>
+   392→   392→                </div>
+   393→   393→              )}
+   394→   394→              {totalDays !== null && totalDays > 0 && (
+   395→   395→                <div className="flex items-center gap-1.5">
+   396→   396→                  <Calendar className="h-4 w-4" />
+   397→   397→                  <span>{totalDays} days</span>
+   398→   398→                </div>
+   399→   399→              )}
+   400→   400→            </div>
+   401→   401→          </div>
+   402→   402→
+   403→   403→          {/* Progress */}
+   404→   404→          <div className="mt-5 space-y-2">
+   405→   405→            <div className="flex items-center justify-between text-sm">
+   406→   406→              <span className="text-muted-foreground">Overall Progress</span>
+   407→   407→              <span className="font-semibold text-emerald-600">{project.progress}%</span>
+   408→   408→            </div>
+   409→   409→            <Progress value={project.progress} className={cn('h-2.5', getProgressColor(project.progress))} />
+   410→   410→          </div>
+   411→   411→        </CardContent>
+   412→   412→      </Card>
+   413→   413→
+   414→   414→      {/* Tabs */}
+   415→   415→      <Tabs value={activeTab} onValueChange={setActiveTab}>
+   416→   416→        <TabsList>
+   417→   417→          <TabsTrigger value="overview">Overview</TabsTrigger>
+   418→   418→          <TabsTrigger value="timeline">
+   419→   419→            Timeline
+   420→   420→            {timelines.length > 0 && (
+   421→   421→              <Badge variant="secondary" className="ml-1.5 h-5 min-w-5 px-1.5 text-[10px]">
+   422→   422→                {timelines.length}
+   423→   423→              </Badge>
+   424→   424→            )}
+   425→   425→          </TabsTrigger>
+   426→   426→          <TabsTrigger value="reports">
+   427→   427→            Reports
+   428→   428→            {reports.length > 0 && (
+   429→   429→              <Badge variant="secondary" className="ml-1.5 h-5 min-w-5 px-1.5 text-[10px]">
+   430→   430→                {reports.length}
+   431→   431→              </Badge>
+   432→   432→            )}
+   433→   433→          </TabsTrigger>
+   434→   434→        </TabsList>
+   435→   435→
+   436→   436→        {/* ==========================================
+   437→   437→            Overview Tab
+   438→   438→            ========================================== */}
+   439→   439→        <TabsContent value="overview" className="mt-4 space-y-6">
+   440→   440→          {/* Quick Actions */}
+   441→   441→          <Card className="border-emerald-200 dark:border-emerald-900/50">
+   442→   442→            <CardHeader className="pb-3">
+   443→   443→              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+   444→   444→                <BarChart3 className="h-4 w-4 text-emerald-600" />
+   445→   445→                Quick Actions
+   446→   446→              </CardTitle>
+   447→   447→            </CardHeader>
+   448→   448→            <CardContent>
+   449→   449→              <div className="flex flex-wrap gap-3">
+   450→   450→                {project.status !== 'COMPLETED' && (
+   451→   451→                  <Button
+   452→   452→                    size="sm"
+   453→   453→                    variant="outline"
+   454→   454→                    className="gap-1.5 border-green-300 text-green-700 hover:bg-green-50 hover:text-green-800 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-950"
+   455→   455→                    onClick={handleMarkComplete}
+   456→   456→                    disabled={updateProject.isPending}
+   457→   457→                  >
+   458→   458→                    <CheckCircle2 className="h-4 w-4" />
+   459→   459→                    Mark as Complete
+   460→   460→                  </Button>
+   461→   461→                )}
+   462→   462→                {project.status !== 'IN_PROGRESS' && (
+   463→   463→                  <Button
+   464→   464→                    size="sm"
+   465→   465→                    variant="outline"
+   466→   466→                    className="gap-1.5 border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950"
+   467→   467→                    onClick={handleSetInProgress}
+   468→   468→                    disabled={updateProject.isPending}
+   469→   469→                  >
+   470→   470→                    <Play className="h-4 w-4" />
+   471→   471→                    Set In Progress
+   472→   472→                  </Button>
+   473→   473→                )}
+   474→   474→                {project.status !== 'ON_HOLD' && project.status !== 'COMPLETED' && project.status !== 'CANCELLED' && (
+   475→   475→                  <Button
+   476→   476→                    size="sm"
+   477→   477→                    variant="outline"
+   478→   478→                    className="gap-1.5 border-amber-300 text-amber-700 hover:bg-amber-50 hover:text-amber-800 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-950"
+   479→   479→                    onClick={handlePutOnHold}
+   480→   480→                    disabled={updateProject.isPending}
+   481→   481→                  >
+   482→   482→                    <Pause className="h-4 w-4" />
+   483→   483→                    Put On Hold
+   484→   484→                  </Button>
+   485→   485→                )}
+   486→   486→                {project.status === 'COMPLETED' && (
+   487→   487→                  <p className="text-sm text-muted-foreground italic flex items-center gap-1.5">
+   488→   488→                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+   489→   489→                    This project has been completed.
+   490→   490→                  </p>
+   491→   491→                )}
+   492→   492→              </div>
+   493→   493→            </CardContent>
+   494→   494→          </Card>
+   495→   495→
+   496→   496→          {/* Info Cards Grid */}
+   497→   497→          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+   498→   498→            {/* Customer Card */}
+   499→   499→            <Card className="transition-shadow hover:shadow-md">
+   500→   500→              <CardHeader className="pb-2">
+   501→   501→                <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+   502→   502→                  <User className="h-3.5 w-3.5" />
+   503→   503→                  Customer
+   504→   504→                </CardTitle>
+   505→   505→              </CardHeader>
+   506→   506→              <CardContent className="space-y-2">
+   507→   507→                <div>
+   508→   508→                  <p className="text-sm font-medium">{project.customer?.name || '—'}</p>
+   509→   509→                  <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+   510→   510→                    <Building2 className="h-3 w-3" />
+   511→   511→                    {project.customer?.company || '—'}
+   512→   512→                  </p>
+   513→   513→                </div>
+   514→   514→                {project.customer?.email && (
+   515→   515→                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+   516→   516→                    <Mail className="h-3 w-3" />
+   517→   517→                    {project.customer.email}
+   518→   518→                  </p>
+   519→   519→                )}
+   520→   520→                {project.customer?.phone && (
+   521→   521→                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+   522→   522→                    <Phone className="h-3 w-3" />
+   523→   523→                    {project.customer.phone}
+   524→   524→                  </p>
+   525→   525→                )}
+   526→   526→              </CardContent>
+   527→   527→            </Card>
+   528→   528→
+   529→   529→            {/* Dates Card */}
+   530→   530→            <Card className="transition-shadow hover:shadow-md">
+   531→   531→              <CardHeader className="pb-2">
+   532→   532→                <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+   533→   533→                  <Calendar className="h-3.5 w-3.5" />
+   534→   534→                  Dates
+   535→   535→                </CardTitle>
+   536→   536→              </CardHeader>
+   537→   537→              <CardContent className="space-y-2">
+   538→   538→                <div className="flex items-center justify-between">
+   539→   539→                  <span className="text-xs text-muted-foreground">Start</span>
+   540→   540→                  <span className="text-xs font-medium">
+   541→   541→                    {project.startDate ? format(new Date(project.startDate), 'dd MMM yyyy') : '—'}
+   542→   542→                  </span>
+   543→   543→                </div>
+   544→   544→                <div className="flex items-center justify-between">
+   545→   545→                  <span className="text-xs text-muted-foreground">End</span>
+   546→   546→                  <span className="text-xs font-medium">
+   547→   547→                    {project.endDate ? format(new Date(project.endDate), 'dd MMM yyyy') : '—'}
+   548→   548→                  </span>
+   549→   549→                </div>
+   550→   550→                <Separator />
+   551→   551→                <div className="flex items-center justify-between">
+   552→   552→                  <span className="text-xs text-muted-foreground">Duration</span>
+   553→   553→                  <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+   554→   554→                    {totalDays !== null && totalDays > 0 ? (
+   555→   555→                      <>
+   556→   556→                        {totalDays} days
+   557→   557→                        {businessDays !== null && businessDays > 0 && (
+   558→   558→                          <span className="text-muted-foreground font-normal ml-1">
+   559→   559→                            ({businessDays} business)
+   560→   560→                          </span>
+   561→   561→                        )}
+   562→   562→                      </>
+   563→   563→                    ) : (
+   564→   564→                      '—'
+   565→   565→                    )}
+   566→   566→                  </span>
+   567→   567→                </div>
+   568→   568→              </CardContent>
+   569→   569→            </Card>
+   570→   570→
+   571→   571→            {/* Budget Card */}
+   572→   572→            <Card className="transition-shadow hover:shadow-md">
+   573→   573→              <CardHeader className="pb-2">
+   574→   574→                <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+   575→   575→                  <DollarSign className="h-3.5 w-3.5" />
+   576→   576→                  Budget
+   577→   577→                </CardTitle>
+   578→   578→              </CardHeader>
+   579→   579→              <CardContent>
+   580→   580→                <p className="text-lg font-bold text-foreground">
+   581→   581→                  {project.budget > 0 ? formatIDR(project.budget) : '—'}
+   582→   582→                </p>
+   583→   583→                {project.budget > 0 && totalDays && totalDays > 0 && (
+   584→   584→                  <p className="text-xs text-muted-foreground mt-1">
+   585→   585→                    {formatIDR(Math.round(project.budget / totalDays))} / day
+   586→   586→                  </p>
+   587→   587→                )}
+   588→   588→              </CardContent>
+   589→   589→            </Card>
+   590→   590→
+   591→   591→            {/* Priority Card */}
+   592→   592→            <Card className="transition-shadow hover:shadow-md">
+   593→   593→              <CardHeader className="pb-2">
+   594→   594→                <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+   595→   595→                  <Briefcase className="h-3.5 w-3.5" />
+   596→   596→                  Priority
+   597→   597→                </CardTitle>
+   598→   598→              </CardHeader>
+   599→   599→              <CardContent className="space-y-2">
+   600→   600→                <Badge
+   601→   601→                  variant="secondary"
+   602→   602→                  className={cn('text-sm font-semibold px-3 py-1', getPriorityClass(project.priority))}
+   603→   603→                >
+   604→   604→                  {PRIORITY_LABELS[project.priority]}
+   605→   605→                </Badge>
+   606→   606→                <div className="mt-2">
+   607→   607→                  <div className="text-xs text-muted-foreground">Category</div>
+   608→   608→                  <Badge
+   609→   609→                    variant="secondary"
+   610→   610→                    className={cn('text-xs mt-0.5', getCategoryClass(project.category))}
+   611→   611→                  >
+   612→   612→                    {CATEGORY_LABELS[project.category]}
+   613→   613→                  </Badge>
+   614→   614→                </div>
+   615→   615→              </CardContent>
+   616→   616→            </Card>
+   617→   617→          </div>
+   618→   618→
+   619→   619→          {/* Description Section */}
+   620→   620→          {project.description && (
+   621→   621→            <Card className="border-l-4 border-l-emerald-500">
+   622→   622→              <CardHeader className="pb-2">
+   623→   623→                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+   624→   624→                  <FileText className="h-4 w-4 text-emerald-600" />
+   625→   625→                  Description
+   626→   626→                </CardTitle>
+   627→   627→              </CardHeader>
+   628→   628→              <CardContent>
+   629→   629→                <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
+   630→   630→                  {project.description}
+   631→   631→                </p>
+   632→   632→              </CardContent>
+   633→   633→            </Card>
+   634→   634→          )}
+   635→   635→
+   636→   636→          {/* Notes Section */}
+   637→   637→          {project.notes && (
+   638→   638→            <Card className="border-l-4 border-l-amber-500">
+   639→   639→              <CardHeader className="pb-2">
+   640→   640→                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+   641→   641→                  <Clock className="h-4 w-4 text-amber-600" />
+   642→   642→                  Notes
+   643→   643→                </CardTitle>
+   644→   644→              </CardHeader>
+   645→   645→              <CardContent>
+   646→   646→                <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
+   647→   647→                  {project.notes}
+   648→   648→                </p>
+   649→   649→              </CardContent>
+   650→   650→            </Card>
+   651→   651→          )}
+   652→   652→        </TabsContent>
+   653→   653→
+   654→   654→        {/* ==========================================
+   655→   655→            Timeline Tab
+   656→   656→            ========================================== */}
+   657→   657→        <TabsContent value="timeline" className="mt-4 space-y-4">
+   658→   658→          <div className="flex items-center justify-between">
+   659→   659→            <h3 className="text-sm font-semibold">Project Timeline</h3>
+   660→   660→            <Button
+   661→   661→              size="sm"
+   662→   662→              className="bg-emerald-600 hover:bg-emerald-700"
+   663→   663→              onClick={openCreateTimeline}
+   664→   664→            >
+   665→   665→              <Plus className="mr-1.5 h-3.5 w-3.5" />
+   666→   666→              Add Task
+   667→   667→            </Button>
+   668→   668→          </div>
+   669→   669→
+   670→   670→          {timelines.length === 0 ? (
+   671→   671→            <div className="flex flex-col items-center justify-center gap-4 py-16 rounded-lg border border-dashed bg-muted/30">
+   672→   672→              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+   673→   673→                <ListTree className="h-8 w-8 text-muted-foreground/60" />
+   674→   674→              </div>
+   675→   675→              <div className="text-center">
+   676→   676→                <p className="text-sm font-medium text-muted-foreground">No timeline entries yet</p>
+   677→   677→                <p className="text-xs text-muted-foreground/70 mt-1">
+   678→   678→                  Add your first task to start tracking project progress.
+   679→   679→                </p>
+   680→   680→              </div>
+   681→   681→              <Button
+   682→   682→                size="sm"
+   683→   683→                variant="outline"
+   684→   684→                className="gap-1.5"
+   685→   685→                onClick={openCreateTimeline}
+   686→   686→              >
+   687→   687→                <Plus className="h-3.5 w-3.5" />
+   688→   688→                Add First Task
+   689→   689→              </Button>
+   690→   690→            </div>
+   691→   691→          ) : (
+   692→   692→            <div className="space-y-3">
+   693→   693→              {/* Column Headers */}
+   694→   694→              <div className="hidden sm:grid sm:grid-cols-[1fr_120px_80px_100px] gap-4 px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+   695→   695→                <span>Task</span>
+   696→   696→                <span>Gantt</span>
+   697→   697→                <span>Progress</span>
+   698→   698→                <span className="text-right">Actions</span>
+   699→   699→              </div>
+   700→   700→              <Separator />
+   701→   701→
+   702→   702→              {timelines
+   703→   703→                .sort((a, b) => a.taskOrder - b.taskOrder)
+   704→   704→                .map((tl) => {
+   705→   705→                  const start = tl.startDate ? new Date(tl.startDate) : null;
+   706→   706→                  const end = tl.endDate ? new Date(tl.endDate) : null;
+   707→   707→                  const isComplete = tl.status === 'COMPLETED';
+   708→   708→
+   709→   709→                  // Gantt bar calculations
+   710→   710→                  let ganttLeft = 0;
+   711→   711→                  let ganttWidth = 0;
+   712→   712→                  const hasGantt = start && end && projectStart && projectRangeMs && projectRangeMs > 0;
+   713→   713→
+   714→   714→                  if (hasGantt) {
+   715→   715→                    const tlStartMs = Math.max(start.getTime(), projectStart);
+   716→   716→                    const tlEndMs = Math.min(end.getTime(), projectStart + projectRangeMs);
+   717→   717→                    ganttLeft = ((tlStartMs - projectStart) / projectRangeMs) * 100;
+   718→   718→                    ganttWidth = ((tlEndMs - tlStartMs) / projectRangeMs) * 100;
+   719→   719→                    ganttWidth = Math.max(ganttWidth, 4); // minimum visible width
+   720→   720→                  }
+   721→   721→
+   722→   722→                  return (
+   723→   723→                    <Card
+   724→   724→                      key={tl.id}
+   725→   725→                      className={cn(
+   726→   726→                        'overflow-hidden transition-shadow hover:shadow-md',
+   727→   727→                        isComplete && 'opacity-70'
+   728→   728→                      )}
+   729→   729→                    >
+   730→   730→                      <CardContent className="p-4">
+   731→   731→                        <div className="flex items-start gap-3">
+   732→   732→                          {/* Left bar indicator */}
+   733→   733→                          <div
+   734→   734→                            className={cn(
+   735→   735→                              'mt-1 h-full w-1 shrink-0 rounded-full',
+   736→   736→                              tl.status === 'IN_PROGRESS'
+   737→   737→                                ? 'bg-emerald-500'
+   738→   738→                                : tl.status === 'COMPLETED'
+   739→   739→                                  ? 'bg-green-500'
+   740→   740→                                  : tl.status === 'DELAYED'
+   741→   741→                                    ? 'bg-red-500'
+   742→   742→                                    : 'bg-gray-300'
+   743→   743→                            )}
+   744→   744→                            style={{ minHeight: '40px' }}
+   745→   745→                          />
+   746→   746→
+   747→   747→                          <div className="flex-1 min-w-0">
+   748→   748→                            {/* Mobile layout */}
+   749→   749→                            <div className="sm:hidden space-y-2">
+   750→   750→                              <div className="flex items-start justify-between gap-2">
+   751→   751→                                <div className="min-w-0">
+   752→   752→                                  <p
+   753→   753→                                    className={cn(
+   754→   754→                                      'text-sm font-medium truncate',
+   755→   755→                                      isComplete && 'line-through'
+   756→   756→                                    )}
+   757→   757→                                  >
+   758→   758→                                    {tl.taskName}
+   759→   759→                                  </p>
+   760→   760→                                  {tl.assignee && (
+   761→   761→                                    <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+   762→   762→                                      <User className="h-3 w-3" />
+   763→   763→                                      {tl.assignee}
+   764→   764→                                    </p>
+   765→   765→                                  )}
+   766→   766→                                </div>
+   767→   767→                                <div className="flex items-center gap-1.5 shrink-0">
+   768→   768→                                  <Badge
+   769→   769→                                    variant="secondary"
+   770→   770→                                    className={cn(
+   771→   771→                                      'text-[10px]',
+   772→   772→                                      getTimelineStatusClass(tl.status)
+   773→   773→                                    )}
+   774→   774→                                  >
+   775→   775→                                    {TIMELINE_STATUS_LABELS[tl.status]}
+   776→   776→                                  </Badge>
+   777→   777→                                  <Button
+   778→   778→                                    variant="ghost"
+   779→   779→                                    size="icon"
+   780→   780→                                    className="h-7 w-7"
+   781→   781→                                    onClick={() => openEditTimeline(tl)}
+   782→   782→                                  >
+   783→   783→                                    <Pencil className="h-3 w-3" />
+   784→   784→                                  </Button>
+   785→   785→                                  <Button
+   786→   786→                                    variant="ghost"
+   787→   787→                                    size="icon"
+   788→   788→                                    className="h-7 w-7 text-destructive hover:text-destructive"
+   789→   789→                                    onClick={() => setDeleteTimelineTarget(tl)}
+   790→   790→                                  >
+   791→   791→                                    <Trash2 className="h-3 w-3" />
+   792→   792→                                  </Button>
+   793→   793→                                </div>
+   794→   794→                              </div>
+   795→   795→
+   796→   796→                              {/* Mobile: dates */}
+   797→   797→                              {(start || end) && (
+   798→   798→                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+   799→   799→                                  {start && <span>{format(start, 'MMM dd')}</span>}
+   800→   800→                                  {start && end && <span>→</span>}
+   801→   801→                                  {end && <span>{format(end, 'MMM dd, yyyy')}</span>}
+   802→   802→                                </div>
+   803→   803→                              )}
+   804→   804→
+   805→   805→                              {/* Mobile: Gantt bar (simple) */}
+   806→   806→                              {hasGantt ? (
+   807→   807→                                <div className="relative h-3 rounded-full bg-muted overflow-hidden">
+   808→   808→                                  <div
+   809→   809→                                    className={cn(
+   810→   810→                                      'absolute top-0 h-full rounded-full',
+   811→   811→                                      getGanttBarColor(tl.status)
+   812→   812→                                    )}
+   813→   813→                                    style={{
+   814→   814→                                      left: `${ganttLeft}%`,
+   815→   815→                                      width: `${ganttWidth}%`,
+   816→   816→                                    }}
+   817→   817→                                  />
+   818→   818→                                </div>
+   819→   819→                              ) : (
+   820→   820→                                /* Mobile: simple progress indicator */
+   821→   821→                                <div className="flex items-center gap-2">
+   822→   822→                                  <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+   823→   823→                                    <div
+   824→   824→                                      className={cn(
+   825→   825→                                        'h-full rounded-full transition-all',
+   826→   826→                                        getGanttBarColor(tl.status)
+   827→   827→                                      )}
+   828→   828→                                      style={{ width: `${tl.progress}%` }}
+   829→   829→                                    />
+   830→   830→                                  </div>
+   831→   831→                                  <span className="text-[11px] text-muted-foreground w-8 text-right">
+   832→   832→                                    {tl.progress}%
+   833→   833→                                  </span>
+   834→   834→                                </div>
+   835→   835→                              )}
+   836→   836→
+   837→   837→                              {tl.notes && (
+   838→   838→                                <p className="text-xs text-muted-foreground">{tl.notes}</p>
+   839→   839→                              )}
+   840→   840→                            </div>
+   841→   841→
+   842→   842→                            {/* Desktop layout */}
+   843→   843→                            <div className="hidden sm:grid sm:grid-cols-[1fr_120px_80px_100px] gap-4 items-center">
+   844→   844→                              {/* Task name + assignee */}
+   845→   845→                              <div className="min-w-0">
+   846→   846→                                <p
+   847→   847→                                  className={cn(
+   848→   848→                                    'text-sm font-medium truncate',
+   849→   849→                                    isComplete && 'line-through'
+   850→   850→                                  )}
+   851→   851→                                >
+   852→   852→                                  {tl.taskName}
+   853→   853→                                </p>
+   854→   854→                                <div className="flex items-center gap-2 mt-0.5">
+   855→   855→                                  <Badge
+   856→   856→                                    variant="secondary"
+   857→   857→                                    className={cn(
+   858→   858→                                      'text-[10px]',
+   859→   859→                                      getTimelineStatusClass(tl.status)
+   860→   860→                                    )}
+   861→   861→                                  >
+   862→   862→                                    {TIMELINE_STATUS_LABELS[tl.status]}
+   863→   863→                                  </Badge>
+   864→   864→                                  {tl.assignee && (
+   865→   865→                                    <span className="text-xs text-muted-foreground truncate">
+   866→   866→                                      {tl.assignee}
+   867→   867→                                    </span>
+   868→   868→                                  )}
+   869→   869→                                  {(start || end) && (
+   870→   870→                                    <span className="text-[11px] text-muted-foreground/70 truncate">
+   871→   871→                                      {start && format(start, 'MMM dd')}
+   872→   872→                                      {start && end && ' → '}
+   873→   873→                                      {end && format(end, 'MMM dd')}
+   874→   874→                                    </span>
+   875→   875→                                  )}
+   876→   876→                                </div>
+   877→   877→                                {tl.notes && (
+   878→   878→                                  <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
+   879→   879→                                    {tl.notes}
+   880→   880→                                  </p>
+   881→   881→                                )}
+   882→   882→                              </div>
+   883→   883→
+   884→   884→                              {/* Gantt bar */}
+   885→   885→                              <div className="relative h-5 rounded bg-muted overflow-hidden">
+   886→   886→                                {hasGantt ? (
+   887→   887→                                  <div
+   888→   888→                                    className={cn(
+   889→   889→                                      'absolute top-0 h-full rounded transition-all',
+   890→   890→                                      getGanttBarColor(tl.status)
+   891→   891→                                    )}
+   892→   892→                                    style={{
+   893→   893→                                      left: `${ganttLeft}%`,
+   894→   894→                                      width: `${ganttWidth}%`,
+   895→   895→                                    }}
+   896→   896→                                  />
+   897→   897→                                ) : (
+   898→   898→                                  /* Simple progress indicator when no dates */
+   899→   899→                                  <div
+   900→   900→                                    className={cn(
+   901→   901→                                      'absolute top-0 left-0 h-full rounded transition-all',
+   902→   902→                                      getGanttBarColor(tl.status)
+   903→   903→                                    )}
+   904→   904→                                    style={{ width: `${tl.progress}%` }}
+   905→   905→                                  />
+   906→   906→                                )}
+   907→   907→                              </div>
+   908→   908→
+   909→   909→                              {/* Progress */}
+   910→   910→                              <div className="flex items-center gap-1.5">
+   911→   911→                                <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+   912→   912→                                  <div
+   913→   913→                                    className={cn(
+   914→   914→                                      'h-full rounded-full transition-all',
+   915→   915→                                      tl.status === 'COMPLETED'
+   916→   916→                                        ? 'bg-green-500'
+   917→   917→                                        : tl.status === 'DELAYED'
+   918→   918→                                          ? 'bg-red-500'
+   919→   919→                                          : 'bg-emerald-500'
+   920→   920→                                    )}
+   921→   921→                                    style={{ width: `${tl.progress}%` }}
+   922→   922→                                  />
+   923→   923→                                </div>
+   924→   924→                                <span className="text-[11px] text-muted-foreground w-8 text-right font-medium">
+   925→   925→                                  {tl.progress}%
+   926→   926→                                </span>
+   927→   927→                              </div>
+   928→   928→
+   929→   929→                              {/* Actions */}
+   930→   930→                              <div className="flex items-center justify-end gap-1">
+   931→   931→                                <Button
+   932→   932→                                  variant="ghost"
+   933→   933→                                  size="icon"
+   934→   934→                                  className="h-7 w-7"
+   935→   935→                                  onClick={() => openEditTimeline(tl)}
+   936→   936→                                >
+   937→   937→                                  <Pencil className="h-3 w-3" />
+   938→   938→                                </Button>
+   939→   939→                                <Button
+   940→   940→                                  variant="ghost"
+   941→   941→                                  size="icon"
+   942→   942→                                  className="h-7 w-7 text-destructive hover:text-destructive"
+   943→   943→                                  onClick={() => setDeleteTimelineTarget(tl)}
+   944→   944→                                >
+   945→   945→                                  <Trash2 className="h-3 w-3" />
+   946→   946→                                </Button>
+   947→   947→                              </div>
+   948→   948→                            </div>
+   949→   949→                          </div>
+   950→   950→                        </div>
+   951→   951→                      </CardContent>
+   952→   952→                    </Card>
+   953→   953→                  );
+   954→   954→                })}
+   955→   955→            </div>
+   956→   956→          )}
+   957→   957→        </TabsContent>
+   958→   958→
+   959→   959→        {/* ==========================================
+   960→   960→            Reports Tab
+   961→   961→            ========================================== */}
+   962→   962→        <TabsContent value="reports" className="mt-4 space-y-4">
+   963→   963→          <div className="flex items-center justify-between">
+   964→   964→            <h3 className="text-sm font-semibold">Project Reports</h3>
+   965→   965→            <Button
+   966→   966→              size="sm"
+   967→   967→              className="bg-emerald-600 hover:bg-emerald-700"
+   968→   968→              onClick={() => {
+   969→   969→                setReportForm({ title: '', type: 'WEEKLY', content: '', status: 'DRAFT' });
+   970→   970→                setIsReportOpen(true);
+   971→   971→              }}
+   972→   972→            >
+   973→   973→              <Plus className="mr-1.5 h-3.5 w-3.5" />
+   974→   974→              Add Report
+   975→   975→            </Button>
+   976→   976→          </div>
+   977→   977→
+   978→   978→          {reports.length === 0 ? (
+   979→   979→            <div className="flex flex-col items-center justify-center gap-4 py-16 rounded-lg border border-dashed bg-muted/30">
+   980→   980→              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+   981→   981→                <FileText className="h-8 w-8 text-muted-foreground/60" />
+   982→   982→              </div>
+   983→   983→              <div className="text-center">
+   984→   984→                <p className="text-sm font-medium text-muted-foreground">No reports yet</p>
+   985→   985→                <p className="text-xs text-muted-foreground/70 mt-1">
+   986→   986→                  Create your first report for this project.
+   987→   987→                </p>
+   988→   988→              </div>
+   989→   989→              <Button
+   990→   990→                size="sm"
+   991→   991→                variant="outline"
+   992→   992→                className="gap-1.5"
+   993→   993→                onClick={() => {
+   994→   994→                  setReportForm({ title: '', type: 'WEEKLY', content: '', status: 'DRAFT' });
+   995→   995→                  setIsReportOpen(true);
+   996→   996→                }}
+   997→   997→              >
+   998→   998→                <Plus className="h-3.5 w-3.5" />
+   999→   999→                Create First Report
+  1000→  1000→              </Button>
+  1001→  1001→            </div>
+  1002→  1002→          ) : (
+  1003→  1003→            <div className="rounded-lg border overflow-hidden">
+  1004→  1004→              {/* Table header */}
+  1005→  1005→              <div className="hidden sm:grid sm:grid-cols-[180px_100px_1fr_90px_80px] gap-4 px-4 py-2.5 bg-muted/50 text-xs font-medium text-muted-foreground uppercase tracking-wider border-b">
+  1006→  1006→                <span>Project</span>
+  1007→  1007→                <span>Type</span>
+  1008→  1008→                <span>Content Preview</span>
+  1009→  1009→                <span>Status</span>
+  1010→  1010→                <span className="text-right">Actions</span>
+  1011→  1011→              </div>
+  1012→  1012→              <div className="divide-y">
+  1013→  1013→                {reports.map((report) => (
+  1014→  1014→                  <div
+  1015→  1015→                    key={report.id}
+  1016→  1016→                    className="hover:bg-muted/30 transition-colors"
+  1017→  1017→                  >
+  1018→  1018→                    {/* Mobile layout */}
+  1019→  1019→                    <div className="sm:hidden p-4 space-y-2">
+  1020→  1020→                      <div className="flex items-start justify-between gap-2">
+  1021→  1021→                        <div className="min-w-0">
+  1022→  1022→                          <p className="text-sm font-medium truncate">{report.title}</p>
+  1023→  1023→                          <p className="text-xs text-muted-foreground mt-0.5">
+  1024→  1024→                            {report.project?.name || project.name}
+  1025→  1025→                          </p>
+  1026→  1026→                        </div>
+  1027→  1027→                        <Button
+  1028→  1028→                          variant="ghost"
+  1029→  1029→                          size="icon"
+  1030→  1030→                          className="h-7 w-7 text-destructive hover:text-destructive shrink-0"
+  1031→  1031→                          onClick={() =>
+  1032→  1032→                            deleteReport.mutate({ id: report.id, projectId })
+  1033→  1033→                          }
+  1034→  1034→                        >
+  1035→  1035→                          <Trash2 className="h-3 w-3" />
+  1036→  1036→                        </Button>
+  1037→  1037→                      </div>
+  1038→  1038→                      <div className="flex items-center gap-2 flex-wrap">
+  1039→  1039→                        <Badge variant="outline" className="text-[10px]">
+  1040→  1040→                          {REPORT_TYPE_LABELS[report.type]}
+  1041→  1041→                        </Badge>
+  1042→  1042→                        <Badge
+  1043→  1043→                          variant="secondary"
+  1044→  1044→                          className={cn(
+  1045→  1045→                            'text-[10px]',
+  1046→  1046→                            report.status === 'APPROVED'
+  1047→  1047→                              ? 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300'
+  1048→  1048→                              : report.status === 'SUBMITTED'
+  1049→  1049→                                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
+  1050→  1050→                                : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+  1051→  1051→                          )}
+  1052→  1052→                        >
+  1053→  1053→                          {REPORT_STATUS_LABELS[report.status]}
+  1054→  1054→                        </Badge>
+  1055→  1055→                        <span className="text-[11px] text-muted-foreground">
+  1056→  1056→                          {format(new Date(report.createdAt), 'MMM dd, yyyy')}
+  1057→  1057→                        </span>
+  1058→  1058→                      </div>
+  1059→  1059→                      {report.content && (
+  1060→  1060→                        <p className="text-xs text-muted-foreground line-clamp-2">
+  1061→  1061→                          {report.content.length > 100
+  1062→  1062→                            ? `${report.content.slice(0, 100)}...`
+  1063→  1063→                            : report.content}
+  1064→  1064→                        </p>
+  1065→  1065→                      )}
+  1066→  1066→                    </div>
+  1067→  1067→
+  1068→  1068→                    {/* Desktop layout */}
+  1069→  1069→                    <div className="hidden sm:grid sm:grid-cols-[180px_100px_1fr_90px_80px] gap-4 items-center px-4 py-3">
+  1070→  1070→                      <div className="min-w-0">
+  1071→  1071→                        <p className="text-sm font-medium truncate">{report.title}</p>
+  1072→  1072→                        <p className="text-xs text-muted-foreground truncate">
+  1073→  1073→                          {report.project?.name || project.name}
+  1074→  1074→                        </p>
+  1075→  1075→                      </div>
+  1076→  1076→                      <Badge variant="outline" className="text-[10px] w-fit">
+  1077→  1077→                        {REPORT_TYPE_LABELS[report.type]}
+  1078→  1078→                      </Badge>
+  1079→  1079→                      <p className="text-xs text-muted-foreground truncate">
+  1080→  1080→                        {report.content
+  1081→  1081→                          ? report.content.length > 100
+  1082→  1082→                            ? `${report.content.slice(0, 100)}...`
+  1083→  1083→                            : report.content
+  1084→  1084→                          : '—'}
+  1085→  1085→                      </p>
+  1086→  1086→                      <Badge
+  1087→  1087→                        variant="secondary"
+  1088→  1088→                        className={cn(
+  1089→  1089→                          'text-[10px] w-fit',
+  1090→  1090→                          report.status === 'APPROVED'
+  1091→  1091→                            ? 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300'
+  1092→  1092→                            : report.status === 'SUBMITTED'
+  1093→  1093→                              ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
+  1094→  1094→                              : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+  1095→  1095→                        )}
+  1096→  1096→                      >
+  1097→  1097→                        {REPORT_STATUS_LABELS[report.status]}
+  1098→  1098→                      </Badge>
+  1099→  1099→                      <div className="flex items-center justify-end gap-1">
+  1100→  1100→                        <span className="text-[10px] text-muted-foreground mr-1 hidden lg:inline">
+  1101→  1101→                          {format(new Date(report.createdAt), 'MMM dd')}
+  1102→  1102→                        </span>
+  1103→  1103→                        <Button
+  1104→  1104→                          variant="ghost"
+  1105→  1105→                          size="icon"
+  1106→  1106→                          className="h-7 w-7 text-destructive hover:text-destructive"
+  1107→  1107→                          onClick={() =>
+  1108→  1108→                            deleteReport.mutate({ id: report.id, projectId })
+  1109→  1109→                          }
+  1110→  1110→                        >
+  1111→  1111→                          <Trash2 className="h-3 w-3" />
+  1112→  1112→                        </Button>
+  1113→  1113→                      </div>
+  1114→  1114→                    </div>
+  1115→  1115→                  </div>
+  1116→  1116→                ))}
+  1117→  1117→              </div>
+  1118→  1118→            </div>
+  1119→  1119→          )}
+  1120→  1120→        </TabsContent>
+  1121→  1121→      </Tabs>
+  1122→  1122→
+  1123→  1123→      {/* Timeline Dialog */}
+  1124→  1124→      <Dialog open={isTimelineOpen} onOpenChange={setIsTimelineOpen}>
+  1125→  1125→        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+  1126→  1126→          <DialogHeader>
+  1127→  1127→            <DialogTitle>
+  1128→  1128→              {editingTimeline ? 'Edit Timeline Entry' : 'Add Timeline Entry'}
+  1129→  1129→            </DialogTitle>
+  1130→  1130→          </DialogHeader>
+  1131→  1131→          <div className="grid gap-4 py-4">
+  1132→  1132→            <div className="space-y-2">
+  1133→  1133→              <Label htmlFor="tl-name">Task Name *</Label>
+  1134→  1134→              <Input
+  1135→  1135→                id="tl-name"
+  1136→  1136→                value={timelineForm.taskName}
+  1137→  1137→                onChange={(e) => setTimelineForm({ ...timelineForm, taskName: e.target.value })}
+  1138→  1138→                placeholder="Design phase"
+  1139→  1139→              />
+  1140→  1140→            </div>
+  1141→  1141→            <div className="grid grid-cols-2 gap-4">
+  1142→  1142→              <div className="space-y-2">
+  1143→  1143→                <Label htmlFor="tl-start">Start Date</Label>
+  1144→  1144→                <Input
+  1145→  1145→                  id="tl-start"
+  1146→  1146→                  type="date"
+  1147→  1147→                  value={timelineForm.startDate}
+  1148→  1148→                  onChange={(e) => setTimelineForm({ ...timelineForm, startDate: e.target.value })}
+  1149→  1149→                />
+  1150→  1150→              </div>
+  1151→  1151→              <div className="space-y-2">
+  1152→  1152→                <Label htmlFor="tl-end">End Date</Label>
+  1153→  1153→                <Input
+  1154→  1154→                  id="tl-end"
+  1155→  1155→                  type="date"
+  1156→  1156→                  value={timelineForm.endDate}
+  1157→  1157→                  onChange={(e) => setTimelineForm({ ...timelineForm, endDate: e.target.value })}
+  1158→  1158→                />
+  1159→  1159→              </div>
+  1160→  1160→            </div>
+  1161→  1161→            <div className="grid grid-cols-2 gap-4">
+  1162→  1162→              <div className="space-y-2">
+  1163→  1163→                <Label>Status</Label>
+  1164→  1164→                <Select
+  1165→  1165→                  value={timelineForm.status}
+  1166→  1166→                  onValueChange={(val) =>
+  1167→  1167→                    setTimelineForm({ ...timelineForm, status: val as TimelineStatus })
+  1168→  1168→                  }
+  1169→  1169→                >
+  1170→  1170→                  <SelectTrigger>
+  1171→  1171→                    <SelectValue />
+  1172→  1172→                  </SelectTrigger>
+  1173→  1173→                  <SelectContent>
+  1174→  1174→                    {Object.entries(TIMELINE_STATUSES).map(([key, val]) => (
+  1175→  1175→                      <SelectItem key={key} value={val}>
+  1176→  1176→                        {TIMELINE_STATUS_LABELS[val]}
+  1177→  1177→                      </SelectItem>
+  1178→  1178→                    ))}
+  1179→  1179→                  </SelectContent>
+  1180→  1180→                </Select>
+  1181→  1181→              </div>
+  1182→  1182→              <div className="space-y-2">
+  1183→  1183→                <Label htmlFor="tl-progress">Progress (%)</Label>
+  1184→  1184→                <Input
+  1185→  1185→                  id="tl-progress"
+  1186→  1186→                  type="number"
+  1187→  1187→                  min="0"
+  1188→  1188→                  max="100"
+  1189→  1189→                  value={timelineForm.progress}
+  1190→  1190→                  onChange={(e) =>
+  1191→  1191→                    setTimelineForm({
+  1192→  1192→                      ...timelineForm,
+  1193→  1193→                      progress: Math.min(100, Math.max(0, parseInt(e.target.value) || 0)),
+  1194→  1194→                    })
+  1195→  1195→                  }
+  1196→  1196→                />
+  1197→  1197→              </div>
+  1198→  1198→            </div>
+  1199→  1199→            <div className="space-y-2">
+  1200→  1200→              <Label htmlFor="tl-assignee">Assignee</Label>
+  1201→  1201→              <Input
+  1202→  1202→                id="tl-assignee"
+  1203→  1203→                value={timelineForm.assignee}
+  1204→  1204→                onChange={(e) => setTimelineForm({ ...timelineForm, assignee: e.target.value })}
+  1205→  1205→                placeholder="John Doe"
+  1206→  1206→              />
+  1207→  1207→            </div>
+  1208→  1208→            <div className="space-y-2">
+  1209→  1209→              <Label htmlFor="tl-notes">Notes</Label>
+  1210→  1210→              <Textarea
+  1211→  1211→                id="tl-notes"
+  1212→  1212→                value={timelineForm.notes}
+  1213→  1213→                onChange={(e) => setTimelineForm({ ...timelineForm, notes: e.target.value })}
+  1214→  1214→                placeholder="Additional notes..."
+  1215→  1215→                rows={2}
+  1216→  1216→              />
+  1217→  1217→            </div>
+  1218→  1218→          </div>
+  1219→  1219→          <DialogFooter>
+  1220→  1220→            <Button variant="outline" onClick={() => setIsTimelineOpen(false)}>
+  1221→  1221→              Cancel
+  1222→  1222→            </Button>
+  1223→  1223→            <Button
+  1224→  1224→              onClick={handleTimelineSubmit}
+  1225→  1225→              disabled={!timelineForm.taskName.trim()}
+  1226→  1226→              className="bg-emerald-600 hover:bg-emerald-700"
+  1227→  1227→            >
+  1228→  1228→              {editingTimeline ? 'Update' : 'Create'}
+  1229→  1229→            </Button>
+  1230→  1230→          </DialogFooter>
+  1231→  1231→        </DialogContent>
+  1232→  1232→      </Dialog>
+  1233→  1233→
+  1234→  1234→      {/* Report Dialog */}
+  1235→  1235→      <Dialog open={isReportOpen} onOpenChange={setIsReportOpen}>
+  1236→  1236→        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+  1237→  1237→          <DialogHeader>
+  1238→  1238→            <DialogTitle>Add Report</DialogTitle>
+  1239→  1239→          </DialogHeader>
+  1240→  1240→          <div className="grid gap-4 py-4">
+  1241→  1241→            <div className="space-y-2">
+  1242→  1242→              <Label htmlFor="rpt-title">Title *</Label>
+  1243→  1243→              <Input
+  1244→  1244→                id="rpt-title"
+  1245→  1245→                value={reportForm.title}
+  1246→  1246→                onChange={(e) => setReportForm({ ...reportForm, title: e.target.value })}
+  1247→  1247→                placeholder="Weekly Status Report"
+  1248→  1248→              />
+  1249→  1249→            </div>
+  1250→  1250→            <div className="grid grid-cols-2 gap-4">
+  1251→  1251→              <div className="space-y-2">
+  1252→  1252→                <Label>Type</Label>
+  1253→  1253→                <Select
+  1254→  1254→                  value={reportForm.type}
+  1255→  1255→                  onValueChange={(val) =>
+  1256→  1256→                    setReportForm({ ...reportForm, type: val as ReportType })
+  1257→  1257→                  }
+  1258→  1258→                >
+  1259→  1259→                  <SelectTrigger>
+  1260→  1260→                    <SelectValue />
+  1261→  1261→                  </SelectTrigger>
+  1262→  1262→                  <SelectContent>
+  1263→  1263→                    {Object.entries(REPORT_TYPES).map(([key, val]) => (
+  1264→  1264→                      <SelectItem key={key} value={val}>
+  1265→  1265→                        {REPORT_TYPE_LABELS[val]}
+  1266→  1266→                      </SelectItem>
+  1267→  1267→                    ))}
+  1268→  1268→                  </SelectContent>
+  1269→  1269→                </Select>
+  1270→  1270→              </div>
+  1271→  1271→              <div className="space-y-2">
+  1272→  1272→                <Label>Status</Label>
+  1273→  1273→                <Select
+  1274→  1274→                  value={reportForm.status}
+  1275→  1275→                  onValueChange={(val) =>
+  1276→  1276→                    setReportForm({ ...reportForm, status: val as ReportStatus })
+  1277→  1277→                  }
+  1278→  1278→                >
+  1279→  1279→                  <SelectTrigger>
+  1280→  1280→                    <SelectValue />
+  1281→  1281→                  </SelectTrigger>
+  1282→  1282→                  <SelectContent>
+  1283→  1283→                    {Object.entries(REPORT_STATUSES).map(([key, val]) => (
+  1284→  1284→                      <SelectItem key={key} value={val}>
+  1285→  1285→                        {REPORT_STATUS_LABELS[val]}
+  1286→  1286→                      </SelectItem>
+  1287→  1287→                    ))}
+  1288→  1288→                  </SelectContent>
+  1289→  1289→                </Select>
+  1290→  1290→              </div>
+  1291→  1291→            </div>
+  1292→  1292→            <div className="space-y-2">
+  1293→  1293→              <Label htmlFor="rpt-content">Content</Label>
+  1294→  1294→              <Textarea
+  1295→  1295→                id="rpt-content"
+  1296→  1296→                value={reportForm.content}
+  1297→  1297→                onChange={(e) => setReportForm({ ...reportForm, content: e.target.value })}
+  1298→  1298→                placeholder="Report content..."
+  1299→  1299→                rows={6}
+  1300→  1300→              />
+  1301→  1301→            </div>
+  1302→  1302→          </div>
+  1303→  1303→          <DialogFooter>
+  1304→  1304→            <Button variant="outline" onClick={() => setIsReportOpen(false)}>
+  1305→  1305→              Cancel
+  1306→  1306→            </Button>
+  1307→  1307→            <Button
+  1308→  1308→              onClick={handleReportSubmit}
+  1309→  1309→              disabled={!reportForm.title.trim()}
+  1310→  1310→              className="bg-emerald-600 hover:bg-emerald-700"
+  1311→  1311→            >
+  1312→  1312→              Create
+  1313→  1313→            </Button>
+  1314→  1314→          </DialogFooter>
+  1315→  1315→        </DialogContent>
+  1316→  1316→      </Dialog>
+  1317→  1317→
+  1318→  1318→      {/* Delete Timeline Confirmation */}
+  1319→  1319→      <AlertDialog
+  1320→  1320→        open={!!deleteTimelineTarget}
+  1321→  1321→        onOpenChange={() => setDeleteTimelineTarget(null)}
+  1322→  1322→      >
+  1323→  1323→        <AlertDialogContent>
+  1324→  1324→          <AlertDialogHeader>
+  1325→  1325→            <AlertDialogTitle>Delete Timeline Entry</AlertDialogTitle>
+  1326→  1326→            <AlertDialogDescription>
+  1327→  1327→              Are you sure you want to delete &quot;{deleteTimelineTarget?.taskName}&quot;?
+  1328→  1328→              This action cannot be undone.
+  1329→  1329→            </AlertDialogDescription>
+  1330→  1330→          </AlertDialogHeader>
+  1331→  1331→          <AlertDialogFooter>
+  1332→  1332→            <AlertDialogCancel>Cancel</AlertDialogCancel>
+  1333→  1333→            <AlertDialogAction
+  1334→  1334→              onClick={() => {
+  1335→  1335→                if (deleteTimelineTarget) {
+  1336→  1336→                  deleteTimeline.mutate({
+  1337→  1337→                    id: deleteTimelineTarget.id,
+  1338→  1338→                    projectId,
+  1339→  1339→                  });
+  1340→  1340→                  setDeleteTimelineTarget(null);
+  1341→  1341→                }
+  1342→  1342→              }}
+  1343→  1343→              className="bg-destructive text-white hover:bg-destructive/90"
+  1344→  1344→            >
+  1345→  1345→              Delete
+  1346→  1346→            </AlertDialogAction>
+  1347→  1347→          </AlertDialogFooter>
+  1348→  1348→        </AlertDialogContent>
+  1349→  1349→      </AlertDialog>
+  1350→  1350→    </motion.div>
+  1351→  1351→  );
+  1352→  1352→}

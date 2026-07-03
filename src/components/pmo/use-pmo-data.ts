@@ -14,6 +14,8 @@ import type {
   Report,
   ExcelFile,
   DashboardData,
+  Division,
+  DivisionOverview,
   ProjectFilters,
   ReportFilters,
   ApiResponse,
@@ -52,6 +54,9 @@ export const queryKeys = {
   reports: (filters?: ReportFilters) => ['reports', filters] as const,
   report: (id: string) => ['report', id] as const,
   excelFiles: (projectId?: string) => ['excelFiles', projectId] as const,
+  divisions: ['divisions'] as const,
+  division: (id: string) => ['division', id] as const,
+  divisionOverview: ['divisionOverview'] as const,
 };
 
 // ==========================================
@@ -432,5 +437,90 @@ export function useDeleteExcelFile() {
     onError: (error: Error) => {
       toast.error(error.message || 'Failed to delete file');
     },
+  });
+}
+
+// ==========================================
+// Divisions
+// ==========================================
+
+export function useDivisions() {
+  return useQuery({
+    queryKey: queryKeys.divisions,
+    queryFn: () =>
+      apiFetch<PaginatedResponse<Division>>('/api/divisions'),
+  });
+}
+
+export function useDivision(id: string) {
+  return useQuery({
+    queryKey: queryKeys.division(id),
+    queryFn: () =>
+      apiFetch<ApiResponse<Division>>(`/api/divisions/${id}`),
+    enabled: !!id,
+  });
+}
+
+export function useCreateDivision() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Omit<Division, 'id' | 'createdAt' | 'updatedAt'>) =>
+      apiFetch<ApiResponse<Division>>('/api/divisions', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['divisions'] });
+      queryClient.invalidateQueries({ queryKey: ['divisionOverview'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      toast.success('Division created successfully');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to create division');
+    },
+  });
+}
+
+export function useUpdateDivision() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...data }: Partial<Division> & { id: string }) =>
+      apiFetch<ApiResponse<Division>>(`/api/divisions/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['divisions'] });
+      queryClient.invalidateQueries({ queryKey: ['divisionOverview'] });
+      toast.success('Division updated successfully');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to update division');
+    },
+  });
+}
+
+export function useDeleteDivision() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      apiFetch<DeleteResponse>(`/api/divisions/${id}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['divisions'] });
+      queryClient.invalidateQueries({ queryKey: ['divisionOverview'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      toast.success('Division deleted successfully');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to delete division');
+    },
+  });
+}
+
+export function useDivisionOverview() {
+  return useQuery({
+    queryKey: queryKeys.divisionOverview,
+    queryFn: () =>
+      apiFetch<ApiResponse<DivisionOverview>>('/api/divisions/overview'),
   });
 }

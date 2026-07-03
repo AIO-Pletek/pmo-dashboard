@@ -15,6 +15,7 @@ import {
   DollarSign,
   ChevronDown,
   ArrowRight,
+  User,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -69,6 +70,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import {
   useProjects,
@@ -76,18 +78,22 @@ import {
   useCreateProject,
   useUpdateProject,
   useDeleteProject,
+  useDivisions,
 } from './use-pmo-data';
 import {
   STATUS_LABELS,
   CATEGORY_LABELS,
   PRIORITY_LABELS,
+  PENDING_TYPE_LABELS,
   PROJECT_CATEGORIES,
   PROJECT_STATUSES,
   PRIORITIES,
+  PENDING_TYPES,
   type Project,
   type ProjectCategory,
   type ProjectStatus,
   type Priority,
+  type PendingType,
   type Customer,
 } from './types';
 
@@ -175,6 +181,17 @@ function getPriorityBorderColor(priority: string) {
   }
 }
 
+function getPendingTypeClass(pendingType: string) {
+  switch (pendingType) {
+    case 'INTERNAL':
+      return 'bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300';
+    case 'EXTERNAL':
+      return 'bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300';
+    default:
+      return 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300';
+  }
+}
+
 function getProgressColor(progress: number) {
   if (progress >= 80) return 'bg-green-500';
   if (progress >= 50) return 'bg-emerald-500';
@@ -195,6 +212,11 @@ const emptyForm = {
   budget: 0,
   priority: 'MEDIUM' as Priority,
   notes: '',
+  picInternalName: '',
+  picInternalDivisionId: '' as string,
+  picExternalName: '',
+  pendingType: 'NONE' as PendingType,
+  pendingNote: '',
 };
 
 interface ProjectManagementProps {
@@ -216,12 +238,14 @@ export function ProjectManagement({ onProjectClick }: ProjectManagementProps) {
     status: statusFilter !== 'all' ? (statusFilter as ProjectStatus) : undefined,
   });
   const { data: customersData } = useCustomers();
+  const { data: divisionsData } = useDivisions();
   const createProject = useCreateProject();
   const updateProject = useUpdateProject();
   const deleteProject = useDeleteProject();
 
   const projects = data?.data || [];
   const customers = customersData?.data || [];
+  const divisions = divisionsData?.data || [];
 
   const openCreate = () => {
     setEditingProject(null);
@@ -243,6 +267,11 @@ export function ProjectManagement({ onProjectClick }: ProjectManagementProps) {
       budget: project.budget,
       priority: project.priority,
       notes: project.notes,
+      picInternalName: project.picInternalName || '',
+      picInternalDivisionId: project.picInternalDivisionId || '',
+      picExternalName: project.picExternalName || '',
+      pendingType: project.pendingType || 'NONE',
+      pendingNote: project.pendingNote || '',
     });
     setIsFormOpen(true);
   };
@@ -254,6 +283,7 @@ export function ProjectManagement({ onProjectClick }: ProjectManagementProps) {
       ...form,
       startDate: form.startDate ? new Date(form.startDate).toISOString() : null,
       endDate: form.endDate ? new Date(form.endDate).toISOString() : null,
+      picInternalDivisionId: form.picInternalDivisionId || null,
     };
 
     if (editingProject) {
@@ -419,6 +449,29 @@ export function ProjectManagement({ onProjectClick }: ProjectManagementProps) {
               </div>
             )}
 
+            {/* PIC Info */}
+            {project.picInternalName && (
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <User className="h-3 w-3" />
+                <span>
+                  PIC: {project.picInternalName}
+                  {project.picInternalDivision?.name && (
+                    <span className="text-emerald-600 dark:text-emerald-400"> ({project.picInternalDivision.name})</span>
+                  )}
+                </span>
+              </div>
+            )}
+
+            {/* Pending Badge */}
+            {project.pendingType && project.pendingType !== 'NONE' && (
+              <Badge
+                variant="secondary"
+                className={cn('text-[10px] font-medium', getPendingTypeClass(project.pendingType))}
+              >
+                {PENDING_TYPE_LABELS[project.pendingType]}
+              </Badge>
+            )}
+
             {/* Actions */}
             <div
               className="flex items-center gap-1 pt-1 border-t"
@@ -576,6 +629,7 @@ export function ProjectManagement({ onProjectClick }: ProjectManagementProps) {
                     <TableHead className="hidden md:table-cell">Budget</TableHead>
                     <TableHead className="hidden lg:table-cell">Date Range</TableHead>
                     <TableHead className="hidden xl:table-cell">Progress</TableHead>
+                    <TableHead className="hidden lg:table-cell">PIC</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -637,6 +691,11 @@ export function ProjectManagement({ onProjectClick }: ProjectManagementProps) {
                             {project.progress}%
                           </span>
                         </div>
+                      </TableCell>
+                      <TableCell className="hidden lg:table-cell">
+                        <span className="text-sm text-muted-foreground whitespace-nowrap">
+                          {project.picInternalName || '—'}
+                        </span>
                       </TableCell>
                       <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-1">
@@ -833,6 +892,82 @@ export function ProjectManagement({ onProjectClick }: ProjectManagementProps) {
                 placeholder="Additional notes..."
                 rows={2}
               />
+            </div>
+
+            {/* PIC & Pending Section */}
+            <div className="pt-2">
+              <p className="text-sm font-semibold text-foreground mb-3">PIC & Pending</p>
+              <Separator className="mb-4" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="proj-pic-internal">PIC Internal (Nama)</Label>
+                  <Input
+                    id="proj-pic-internal"
+                    value={form.picInternalName}
+                    onChange={(e) => setForm({ ...form, picInternalName: e.target.value })}
+                    placeholder="Nama PIC internal"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="proj-division">Divisi Internal</Label>
+                  <Select
+                    value={form.picInternalDivisionId}
+                    onValueChange={(val) => setForm({ ...form, picInternalDivisionId: val })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih divisi..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {divisions.map((d) => (
+                        <SelectItem key={d.id} value={d.id}>
+                          {d.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="proj-pic-external">PIC Eksternal / Customer</Label>
+                  <Input
+                    id="proj-pic-external"
+                    value={form.picExternalName}
+                    onChange={(e) => setForm({ ...form, picExternalName: e.target.value })}
+                    placeholder="Nama PIC eksternal"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="proj-pending-type">Status Pending</Label>
+                  <Select
+                    value={form.pendingType}
+                    onValueChange={(val) =>
+                      setForm({ ...form, pendingType: val as PendingType, pendingNote: val === 'NONE' ? '' : form.pendingNote })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(PENDING_TYPES).map(([key, val]) => (
+                        <SelectItem key={key} value={val}>
+                          {PENDING_TYPE_LABELS[val]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              {form.pendingType !== 'NONE' && (
+                <div className="space-y-2 mt-4">
+                  <Label htmlFor="proj-pending-note">Catatan Pending</Label>
+                  <Textarea
+                    id="proj-pending-note"
+                    value={form.pendingNote}
+                    onChange={(e) => setForm({ ...form, pendingNote: e.target.value })}
+                    placeholder="Jelaskan detail pending..."
+                    rows={2}
+                  />
+                </div>
+              )}
             </div>
           </div>
           <DialogFooter>

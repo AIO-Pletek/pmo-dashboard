@@ -82,6 +82,7 @@ import {
   STATUS_LABELS,
   CATEGORY_LABELS,
   PRIORITY_LABELS,
+  PENDING_TYPE_LABELS,
   TIMELINE_STATUS_LABELS,
   REPORT_TYPE_LABELS,
   REPORT_STATUS_LABELS,
@@ -649,6 +650,64 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
               </CardContent>
             </Card>
           )}
+
+          {/* PIC & Pending Section */}
+          <Card className="transition-shadow hover:shadow-md">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <User className="h-3.5 w-3.5" />
+                PIC & Pending
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-1">
+                  <span className="text-xs text-muted-foreground">Internal PIC</span>
+                  <p className="text-sm font-medium">
+                    {project.picInternalName || '—'}
+                    {project.picInternalName && project.picInternalDivision && (
+                      <span className="text-emerald-600 dark:text-emerald-400 font-normal ml-1.5">
+                        ({project.picInternalDivision.name})
+                      </span>
+                    )}
+                  </p>
+                </div>
+              </div>
+              <Separator />
+              <div className="space-y-1">
+                <span className="text-xs text-muted-foreground">External PIC</span>
+                <p className="text-sm font-medium">{project.picExternalName || '—'}</p>
+              </div>
+              <Separator />
+              <div className="space-y-1">
+                <span className="text-xs text-muted-foreground">Pending Status</span>
+                <Badge
+                  variant="secondary"
+                  className={cn(
+                    'text-xs font-medium',
+                    project.pendingType === 'INTERNAL'
+                      ? 'bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300'
+                      : project.pendingType === 'EXTERNAL'
+                        ? 'bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300'
+                        : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                  )}
+                >
+                  {PENDING_TYPE_LABELS[project.pendingType]}
+                </Badge>
+              </div>
+              {project.pendingType !== 'NONE' && project.pendingNote && (
+                <>
+                  <Separator />
+                  <div className="space-y-1">
+                    <span className="text-xs text-muted-foreground">Pending Note</span>
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                      {project.pendingNote}
+                    </p>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* ==========================================

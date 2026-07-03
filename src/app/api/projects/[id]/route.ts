@@ -12,6 +12,7 @@ export async function GET(
       where: { id },
       include: {
         customer: true,
+        picInternalDivision: true,
         timelines: { orderBy: { taskOrder: 'asc' } },
         reports: { orderBy: { createdAt: 'desc' } },
         excelFiles: { orderBy: { uploadedAt: 'desc' } },
@@ -39,6 +40,13 @@ export async function GET(
             ...project.customer,
             createdAt: project.customer.createdAt.toISOString(),
             updatedAt: project.customer.updatedAt.toISOString(),
+          }
+        : null,
+      picInternalDivision: project.picInternalDivision
+        ? {
+            ...project.picInternalDivision,
+            createdAt: project.picInternalDivision.createdAt.toISOString(),
+            updatedAt: project.picInternalDivision.updatedAt.toISOString(),
           }
         : null,
       timelines: project.timelines.map((t) => ({
@@ -95,7 +103,42 @@ export async function PUT(
       budget,
       priority,
       notes,
+      picInternalName,
+      picInternalDivisionId,
+      picExternalName,
+      pendingType,
+      pendingNote,
     } = body
+
+    // Validate pendingType if provided
+    if (pendingType !== undefined) {
+      const validPendingTypes = ['NONE', 'INTERNAL', 'EXTERNAL']
+      if (!validPendingTypes.includes(pendingType)) {
+        return NextResponse.json(
+          { error: 'pendingType must be one of: NONE, INTERNAL, EXTERNAL' },
+          { status: 400 }
+        )
+      }
+    }
+
+    // Validate division if provided
+    let resolvedDivisionId: string | null | undefined
+    if (picInternalDivisionId !== undefined) {
+      if (picInternalDivisionId === '') {
+        resolvedDivisionId = null
+      } else {
+        const divisionExists = await db.division.findUnique({
+          where: { id: picInternalDivisionId },
+        })
+        if (!divisionExists) {
+          return NextResponse.json(
+            { error: 'Division not found' },
+            { status: 400 }
+          )
+        }
+        resolvedDivisionId = picInternalDivisionId
+      }
+    }
 
     const project = await db.project.update({
       where: { id },
@@ -115,6 +158,11 @@ export async function PUT(
         ...(budget !== undefined && { budget }),
         ...(priority !== undefined && { priority }),
         ...(notes !== undefined && { notes }),
+        ...(picInternalName !== undefined && { picInternalName }),
+        ...(resolvedDivisionId !== undefined && { picInternalDivisionId: resolvedDivisionId }),
+        ...(picExternalName !== undefined && { picExternalName }),
+        ...(pendingType !== undefined && { pendingType }),
+        ...(pendingNote !== undefined && { pendingNote }),
       },
     })
 

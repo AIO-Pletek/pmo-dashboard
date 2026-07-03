@@ -8,6 +8,7 @@ import {
   UploadCloud,
   Menu,
   X,
+  Building2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
@@ -24,6 +25,7 @@ const navItems: { view: ViewType; label: string; icon: React.ElementType }[] = [
   { view: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { view: 'customers', label: 'Customers', icon: Users },
   { view: 'projects', label: 'Projects', icon: FolderKanban },
+  { view: 'divisions', label: 'Panel Divisi', icon: Building2 },
   { view: 'reports', label: 'Reports', icon: FileBarChart },
   { view: 'upload', label: 'Upload Excel', icon: UploadCloud },
 ];

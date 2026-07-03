@@ -43,6 +43,12 @@ export const PRIORITIES = {
   CRITICAL: 'CRITICAL',
 } as const;
 
+export const PENDING_TYPES = {
+  NONE: 'NONE',
+  INTERNAL: 'INTERNAL',
+  EXTERNAL: 'EXTERNAL',
+} as const;
+
 // Union types
 export type ProjectCategory = (typeof PROJECT_CATEGORIES)[keyof typeof PROJECT_CATEGORIES];
 export type ProjectStatus = (typeof PROJECT_STATUSES)[keyof typeof PROJECT_STATUSES];
@@ -50,6 +56,7 @@ export type TimelineStatus = (typeof TIMELINE_STATUSES)[keyof typeof TIMELINE_ST
 export type ReportType = (typeof REPORT_TYPES)[keyof typeof REPORT_TYPES];
 export type ReportStatus = (typeof REPORT_STATUSES)[keyof typeof REPORT_STATUSES];
 export type Priority = (typeof PRIORITIES)[keyof typeof PRIORITIES];
+export type PendingType = (typeof PENDING_TYPES)[keyof typeof PENDING_TYPES];
 
 // Data Models
 export interface Customer {
@@ -78,9 +85,15 @@ export interface Project {
   budget: number;
   priority: Priority;
   notes: string;
+  picInternalName: string;
+  picInternalDivisionId: string | null;
+  picExternalName: string;
+  pendingType: PendingType;
+  pendingNote: string;
   createdAt: string;
   updatedAt: string;
   customer?: Customer;
+  picInternalDivision?: Division | null;
 }
 
 export interface Timeline {
@@ -117,6 +130,34 @@ export interface ExcelFile {
   filePath: string;
   uploadedAt: string;
   data?: Record<string, unknown>[];
+}
+
+// Division types
+export interface Division {
+  id: string;
+  name: string;
+  description: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DivisionWithCounts extends Division {
+  totalProjects: number;
+  projectsByStatus: Record<string, number>;
+  projectsByCategory: Record<string, number>;
+  projectsByPendingType: Record<string, number>;
+  pendingProjects: (Project & { customer: Customer })[];
+}
+
+export interface DivisionOverview {
+  divisions: DivisionWithCounts[];
+  summary: {
+    totalDivisions: number;
+    totalPendingInternal: number;
+    totalPendingExternal: number;
+    totalPendingNone: number;
+    projectsWithoutDivision: number;
+  };
 }
 
 // Dashboard types
@@ -158,7 +199,7 @@ export interface ReportFilters {
 }
 
 // View type for SPA navigation
-export type ViewType = 'dashboard' | 'customers' | 'projects' | 'project-detail' | 'reports' | 'upload';
+export type ViewType = 'dashboard' | 'customers' | 'projects' | 'project-detail' | 'reports' | 'upload' | 'divisions';
 
 // Label maps for display
 export const CATEGORY_LABELS: Record<ProjectCategory, string> = {
@@ -199,4 +240,10 @@ export const PRIORITY_LABELS: Record<Priority, string> = {
   MEDIUM: 'Medium',
   HIGH: 'High',
   CRITICAL: 'Critical',
+};
+
+export const PENDING_TYPE_LABELS: Record<PendingType, string> = {
+  NONE: 'No Pending',
+  INTERNAL: 'Pending Internal',
+  EXTERNAL: 'Pending External',
 };

@@ -22,26 +22,42 @@ model Customer {
   projects  Project[]
 }
 
-model Project {
+model Division {
   id          String    @id @default(cuid())
   name        String
-  customerId  String
-  category    String    @default("ONGOING_CUSTOMER") // ONGOING_CUSTOMER, POC_CUSTOMER
-  status      String    @default("PLANNING") // PLANNING, IN_PROGRESS, ON_HOLD, COMPLETED, CANCELLED
   description String    @default("")
-  startDate   DateTime?
-  endDate     DateTime?
-  progress    Int       @default(0)
-  budget      Float     @default(0)
-  priority    String    @default("MEDIUM") // LOW, MEDIUM, HIGH, CRITICAL
-  notes       String    @default("")
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  customer    Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  timelines   Timeline[]
-  reports     Report[]
-  excelFiles  ExcelFile[]
+  projects    Project[]
+}
+
+model Project {
+  id                    String    @id @default(cuid())
+  name                  String
+  customerId            String
+  category              String    @default("ONGOING_CUSTOMER") // ONGOING_CUSTOMER, POC_CUSTOMER
+  status                String    @default("PLANNING") // PLANNING, IN_PROGRESS, ON_HOLD, COMPLETED, CANCELLED
+  description           String    @default("")
+  startDate             DateTime?
+  endDate               DateTime?
+  progress              Int       @default(0)
+  budget                Float     @default(0)
+  priority              String    @default("MEDIUM") // LOW, MEDIUM, HIGH, CRITICAL
+  notes                 String    @default("")
+  picInternalName       String    @default("")
+  picInternalDivisionId String?
+  picExternalName       String    @default("")
+  pendingType           String    @default("NONE") // NONE, INTERNAL, EXTERNAL
+  pendingNote           String    @default("")
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  customer              Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  picInternalDivision   Division? @relation(fields: [picInternalDivisionId], references: [id], onDelete: SetNull)
+  timelines             Timeline[]
+  reports               Report[]
+  excelFiles            ExcelFile[]
 }
 
 model Timeline {
