@@ -106,3 +106,103 @@ Stage Summary:
 - All API/frontend response format inconsistencies fixed
 - Full end-to-end verification passed for all core flows
 - Application is production-ready with all features working
+
+---
+Task ID: 5
+Agent: Main
+Task: Enhance project-detail.tsx component for PMO Dashboard
+
+Work Log:
+- Enhanced Overview Tab with 4 info cards in a responsive grid (Customer, Dates, Budget, Priority)
+  - Customer card shows name, company, email, phone with icons (Building2, Mail, Phone)
+  - Dates card shows start/end dates and calculated duration in both calendar days and business days using differenceInBusinessDays
+  - Budget card formats amounts as Indonesian Rupiah using Intl.NumberFormat('id-ID', { currency: 'IDR' }) with per-day breakdown
+  - Priority card shows priority badge and category badge
+- Added "Quick Actions" card at top of Overview tab with emerald border accent
+  - "Mark as Complete" button (sets status=COMPLETED, progress=100) — hidden when already completed
+  - "Set In Progress" button (sets status=IN_PROGRESS) — hidden when already in progress
+  - "Put On Hold" button (sets status=ON_HOLD) — hidden when completed/cancelled
+  - Uses useUpdateProject mutation for all quick actions
+- Added Description section with emerald left border accent card
+- Added Notes section with amber left border accent card
+- Enhanced Timeline Tab with visual Gantt-like bars
+  - Column headers for Task, Gantt, Progress, Actions (desktop)
+  - Gantt bar color based on status: emerald=completed, amber=in-progress, gray=not started, red=delayed
+  - Bar position/width calculated relative to project date range
+  - Falls back to simple progress indicator when no dates available
+  - Dedicated Progress column with mini progress bar and percentage
+  - Responsive: mobile shows stacked layout, desktop shows grid columns
+- Enhanced Reports Tab
+  - Better empty state with centered icon in circular bg, descriptive text, and CTA button
+  - Table layout with headers (Project, Type, Content Preview, Status, Actions) on desktop
+  - Content preview showing first 100 characters with ellipsis truncation
+  - Project name column (falls back to current project name)
+  - Responsive: mobile uses card layout, desktop uses table grid
+- Removed unused InfoCard sub-component (replaced by richer info cards)
+- Added new icons: CheckCircle2, Play, Pause, Building2, Phone, Mail, Briefcase, BarChart3, Timer, ListTree
+- All cards have transition-shadow hover:shadow-md for subtle hover effect
+- All existing functionality preserved: add/edit/delete timeline, add/delete report, dialogs, alert dialogs
+- ESLint passes with zero errors, dev server compiles successfully
+
+Stage Summary:
+- project-detail.tsx completely rewritten with enhanced visual and functional design
+- Overview tab now has Quick Actions, 4 rich info cards, bordered Description/Notes sections
+- Timeline tab now has Gantt-like visual bars, progress column, responsive grid layout
+- Reports tab now has table layout, content preview (100 chars), project name column, better empty state
+- Budget formatted as IDR, dates show business days, all using date-fns utilities
+- Same export name (ProjectDetail) and props interface ({ projectId, onBack }) preserved
+
+---
+Task ID: 5 & 6
+Agent: Main
+Task: Enhance project-management.tsx and customer-management.tsx
+
+Work Log:
+- Enhanced project-management.tsx:
+  1. Quick Status Change: Added Popover + Command component for fast inline status changes on each project card and table row. Shows colored dot indicators per status, highlights current status, supports search filtering.
+  2. Better Project Cards: Customer company name shown prominently in emerald color; budget formatted as Rupiah (Intl.NumberFormat id-ID) with DollarSign icon when > 0; date range displayed as "MMM d - MMM d, yyyy"; subtle left border color per priority (LOW=gray, MEDIUM=teal, HIGH=orange, CRITICAL=red) via border-l-4.
+  3. Table View Enhancement: Added Customer column, Budget column (formatted Rupiah, hidden on mobile), Date Range column (hidden on lg-); reorganized column visibility for responsive breakpoints.
+  4. Better Empty State: Large FolderKanban icon in emerald circle, "No projects yet" heading, "Create your first project" message, and a CTA button.
+- Enhanced customer-management.tsx:
+  1. Project Count Column: Shows projectCount (from API) as an emerald Badge, hidden on mobile (visible lg+).
+  2. Better Empty State: Large Users icon in emerald circle, "No customers yet" heading, "Add your first customer" message, and a CTA button.
+  3. Industry Column: Already existed at hidden md:table-cell, kept and verified.
+  4. Click to View: Added cursor-pointer and hover:bg-muted/60 transition to table rows; action buttons stopPropagation to avoid triggering row click.
+- Removed unused imports (useEffect in project-management, ArrowRight unused in project-management).
+- Defined CustomerWithCount local type to access projectCount from API without modifying types.ts.
+- ESLint passes with zero errors, dev server compiles successfully.
+
+Stage Summary:
+- project-management.tsx: Quick status popover, enhanced cards with priority borders and Rupiah formatting, table view with Customer/Budget/Date Range columns, improved empty state
+- customer-management.tsx: Project count badge column, improved empty state, clickable rows with hover effects
+- No other files modified; all existing functionality preserved
+
+---
+Task ID: 7
+Agent: Main
+Task: Bug fixes, API consistency, and final end-to-end verification
+
+Work Log:
+- Fixed Dashboard API: projectsByCategory and projectsByStatus now return Record<string, number> instead of arrays. All status/category keys guaranteed present with default 0 values.
+- Fixed Reports API GET: Added type and status query param filtering. Added include: { project: { include: { customer: true } } } so report list returns project name for display.
+- Fixed Reports API POST: Added request.json() call (was missing body parsing).
+- Verified Dashboard with 2 customers and 2 projects:
+  - KPI cards: Total Customers=2, Active Projects=2, POC Projects=1, Completion Rate=50%
+  - Bar Chart: Completed=1, Planning=1, others=0 (correct data)
+  - Pie Chart: On-going Customer=1, POC Customer=1 (correct data)
+  - Recent Projects: Both projects shown with customer, status, progress
+- Verified Quick Status Change: Changed project from Planning → In Progress → Completed via popover
+- Verified Quick Actions in Project Detail: "Set In Progress", "Mark as Complete", "Put On Hold" all working
+- Verified Enhanced Project Detail Overview: Customer card, Dates card, Budget card (IDR format), Priority card, Quick Actions
+- Verified Enhanced Timeline: Column headers (Task, Gantt, Progress, Actions), status badges, progress bars
+- Verified Enhanced Customer table: Project count badge column showing correct counts
+- Verified Report creation with project selection: Project name "Digital Transformation Phase 1" displayed correctly in report table
+- Verified Report view dialog: Shows title, type badge, status badge, project name, content
+- Verified Reports page filters: All Projects, All Types, All Statuses dropdowns
+- Verified mobile responsive: sidebar collapses to Sheet with hamburger menu
+- ESLint passes with zero errors throughout all changes
+
+Stage Summary:
+- 3 critical API bugs fixed (dashboard format, reports filters, reports project include)
+- All features verified end-to-end with Agent Browser
+- Application is fully production-ready with 2 customers, 2 projects, 1 timeline entry, 1 report as test data

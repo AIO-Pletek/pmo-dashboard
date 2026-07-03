@@ -1,0 +1,755 @@
+     1→'use client';
+     2→
+     3→import { useState, useEffect } from 'react';
+     4→import { motion, AnimatePresence } from 'framer-motion';
+     5→import { format } from 'date-fns';
+     6→import {
+     7→  Plus,
+     8→  Search,
+     9→  Pencil,
+    10→  Trash2,
+    11→  LayoutGrid,
+    12→  List,
+    13→  FolderKanban,
+    14→  Calendar,
+    15→  DollarSign,
+    16→} from 'lucide-react';
+    17→import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+    18→import { Button } from '@/components/ui/button';
+    19→import { Input } from '@/components/ui/input';
+    20→import { Label } from '@/components/ui/label';
+    21→import { Textarea } from '@/components/ui/textarea';
+    22→import { Badge } from '@/components/ui/badge';
+    23→import { Progress } from '@/components/ui/progress';
+    24→import {
+    25→  Select,
+    26→  SelectContent,
+    27→  SelectItem,
+    28→  SelectTrigger,
+    29→  SelectValue,
+    30→} from '@/components/ui/select';
+    31→import {
+    32→  Dialog,
+    33→  DialogContent,
+    34→  DialogHeader,
+    35→  DialogTitle,
+    36→  DialogFooter,
+    37→} from '@/components/ui/dialog';
+    38→import {
+    39→  AlertDialog,
+    40→  AlertDialogAction,
+    41→  AlertDialogCancel,
+    42→  AlertDialogContent,
+    43→  AlertDialogDescription,
+    44→  AlertDialogFooter,
+    45→  AlertDialogHeader,
+    46→  AlertDialogTitle,
+    47→} from '@/components/ui/alert-dialog';
+    48→import {
+    49→  Table,
+    50→  TableBody,
+    51→  TableCell,
+    52→  TableHead,
+    53→  TableHeader,
+    54→  TableRow,
+    55→} from '@/components/ui/table';
+    56→import { Skeleton } from '@/components/ui/skeleton';
+    57→import { cn } from '@/lib/utils';
+    58→import {
+    59→  useProjects,
+    60→  useCustomers,
+    61→  useCreateProject,
+    62→  useUpdateProject,
+    63→  useDeleteProject,
+    64→} from './use-pmo-data';
+    65→import {
+    66→  STATUS_LABELS,
+    67→  CATEGORY_LABELS,
+    68→  PRIORITY_LABELS,
+    69→  PROJECT_CATEGORIES,
+    70→  PROJECT_STATUSES,
+    71→  PRIORITIES,
+    72→  type Project,
+    73→  type ProjectCategory,
+    74→  type ProjectStatus,
+    75→  type Priority,
+    76→  type Customer,
+    77→} from './types';
+    78→
+    79→const container = {
+    80→  hidden: { opacity: 0 },
+    81→  show: { opacity: 1, transition: { staggerChildren: 0.06 } },
+    82→};
+    83→
+    84→const item = {
+    85→  hidden: { opacity: 0, y: 12 },
+    86→  show: { opacity: 1, y: 0, transition: { duration: 0.3 } },
+    87→};
+    88→
+    89→// Badge helpers
+    90→function getStatusClass(status: string) {
+    91→  switch (status) {
+    92→    case 'IN_PROGRESS':
+    93→      return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300';
+    94→    case 'COMPLETED':
+    95→      return 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300';
+    96→    case 'ON_HOLD':
+    97→      return 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300';
+    98→    case 'CANCELLED':
+    99→      return 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300';
+   100→    default:
+   101→      return 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300';
+   102→  }
+   103→}
+   104→
+   105→function getCategoryClass(category: string) {
+   106→  switch (category) {
+   107→    case 'ONGOING_CUSTOMER':
+   108→      return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300';
+   109→    case 'POC_CUSTOMER':
+   110→      return 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300';
+   111→    default:
+   112→      return '';
+   113→  }
+   114→}
+   115→
+   116→function getPriorityClass(priority: string) {
+   117→  switch (priority) {
+   118→    case 'LOW':
+   119→      return 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300';
+   120→    case 'MEDIUM':
+   121→      return 'bg-teal-100 text-teal-700 dark:bg-teal-950 dark:text-teal-300';
+   122→    case 'HIGH':
+   123→      return 'bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300';
+   124→    case 'CRITICAL':
+   125→      return 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300';
+   126→    default:
+   127→      return '';
+   128→  }
+   129→}
+   130→
+   131→function getProgressColor(progress: number) {
+   132→  if (progress >= 80) return 'bg-green-500';
+   133→  if (progress >= 50) return 'bg-emerald-500';
+   134→  if (progress >= 25) return 'bg-amber-500';
+   135→  return 'bg-gray-400';
+   136→}
+   137→
+   138→// Form initial state
+   139→const emptyForm = {
+   140→  name: '',
+   141→  customerId: '',
+   142→  category: 'ONGOING_CUSTOMER' as ProjectCategory,
+   143→  status: 'PLANNING' as ProjectStatus,
+   144→  description: '',
+   145→  startDate: '',
+   146→  endDate: '',
+   147→  progress: 0,
+   148→  budget: 0,
+   149→  priority: 'MEDIUM' as Priority,
+   150→  notes: '',
+   151→};
+   152→
+   153→interface ProjectManagementProps {
+   154→  onProjectClick: (projectId: string) => void;
+   155→}
+   156→
+   157→export function ProjectManagement({ onProjectClick }: ProjectManagementProps) {
+   158→  const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
+   159→  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+   160→  const [statusFilter, setStatusFilter] = useState<string>('all');
+   161→  const [isFormOpen, setIsFormOpen] = useState(false);
+   162→  const [editingProject, setEditingProject] = useState<Project | null>(null);
+   163→  const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
+   164→  const [form, setForm] = useState(emptyForm);
+   165→
+   166→  const { data, isLoading } = useProjects({
+   167→    category: categoryFilter !== 'all' ? (categoryFilter as ProjectCategory) : undefined,
+   168→    status: statusFilter !== 'all' ? (statusFilter as ProjectStatus) : undefined,
+   169→  });
+   170→  const { data: customersData } = useCustomers();
+   171→  const createProject = useCreateProject();
+   172→  const updateProject = useUpdateProject();
+   173→  const deleteProject = useDeleteProject();
+   174→
+   175→  const projects = data?.data || [];
+   176→  const customers = customersData?.data || [];
+   177→
+   178→  const openCreate = () => {
+   179→    setEditingProject(null);
+   180→    setForm(emptyForm);
+   181→    setIsFormOpen(true);
+   182→  };
+   183→
+   184→  const openEdit = (project: Project) => {
+   185→    setEditingProject(project);
+   186→    setForm({
+   187→      name: project.name,
+   188→      customerId: project.customerId,
+   189→      category: project.category,
+   190→      status: project.status,
+   191→      description: project.description,
+   192→      startDate: project.startDate ? format(new Date(project.startDate), 'yyyy-MM-dd') : '',
+   193→      endDate: project.endDate ? format(new Date(project.endDate), 'yyyy-MM-dd') : '',
+   194→      progress: project.progress,
+   195→      budget: project.budget,
+   196→      priority: project.priority,
+   197→      notes: project.notes,
+   198→    });
+   199→    setIsFormOpen(true);
+   200→  };
+   201→
+   202→  const handleSubmit = () => {
+   203→    if (!form.name.trim() || !form.customerId) return;
+   204→
+   205→    const payload = {
+   206→      ...form,
+   207→      startDate: form.startDate ? new Date(form.startDate).toISOString() : null,
+   208→      endDate: form.endDate ? new Date(form.endDate).toISOString() : null,
+   209→    };
+   210→
+   211→    if (editingProject) {
+   212→      updateProject.mutate({ id: editingProject.id, ...payload });
+   213→    } else {
+   214→      createProject.mutate(payload);
+   215→    }
+   216→    setIsFormOpen(false);
+   217→  };
+   218→
+   219→  const handleDelete = () => {
+   220→    if (deleteTarget) {
+   221→      deleteProject.mutate(deleteTarget.id);
+   222→      setDeleteTarget(null);
+   223→    }
+   224→  };
+   225→
+   226→  // Project Card
+   227→  function ProjectCard({ project }: { project: Project & { customer?: Customer } }) {
+   228→    return (
+   229→      <motion.div
+   230→        variants={item}
+   231→        whileHover={{ y: -2 }}
+   232→        transition={{ duration: 0.2 }}
+   233→      >
+   234→        <Card
+   235→          className="cursor-pointer transition-shadow hover:shadow-md"
+   236→          onClick={() => onProjectClick(project.id)}
+   237→        >
+   238→          <CardHeader className="pb-3">
+   239→            <div className="flex items-start justify-between gap-2">
+   240→              <div className="min-w-0 flex-1">
+   241→                <CardTitle className="text-sm font-semibold leading-tight truncate">
+   242→                  {project.name}
+   243→                </CardTitle>
+   244→                <p className="mt-1 text-xs text-muted-foreground truncate">
+   245→                  {project.customer?.company || 'Unknown Customer'}
+   246→                </p>
+   247→              </div>
+   248→              <div className="flex shrink-0 gap-1.5">
+   249→                <Badge
+   250→                  variant="secondary"
+   251→                  className={cn('text-[10px] font-medium', getCategoryClass(project.category))}
+   252→                >
+   253→                  {CATEGORY_LABELS[project.category]}
+   254→                </Badge>
+   255→              </div>
+   256→            </div>
+   257→          </CardHeader>
+   258→          <CardContent className="space-y-3">
+   259→            <div className="flex items-center gap-2 flex-wrap">
+   260→              <Badge
+   261→                variant="secondary"
+   262→                className={cn('text-[10px] font-medium', getStatusClass(project.status))}
+   263→              >
+   264→                {STATUS_LABELS[project.status]}
+   265→              </Badge>
+   266→              <Badge
+   267→                variant="secondary"
+   268→                className={cn('text-[10px] font-medium', getPriorityClass(project.priority))}
+   269→              >
+   270→                {PRIORITY_LABELS[project.priority]}
+   271→              </Badge>
+   272→            </div>
+   273→
+   274→            {/* Progress */}
+   275→            <div className="space-y-1.5">
+   276→              <div className="flex items-center justify-between text-xs">
+   277→                <span className="text-muted-foreground">Progress</span>
+   278→                <span className="font-medium">{project.progress}%</span>
+   279→              </div>
+   280→              <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+   281→                <div
+   282→                  className={cn('h-full rounded-full transition-all', getProgressColor(project.progress))}
+   283→                  style={{ width: `${project.progress}%` }}
+   284→                />
+   285→              </div>
+   286→            </div>
+   287→
+   288→            {/* Dates */}
+   289→            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+   290→              {project.startDate && (
+   291→                <span className="flex items-center gap-1">
+   292→                  <Calendar className="h-3 w-3" />
+   293→                  {format(new Date(project.startDate), 'MMM dd')}
+   294→                </span>
+   295→              )}
+   296→              {project.endDate && (
+   297→                <span className="flex items-center gap-1">
+   298→                  <Calendar className="h-3 w-3" />
+   299→                  {format(new Date(project.endDate), 'MMM dd, yyyy')}
+   300→                </span>
+   301→              )}
+   302→            </div>
+   303→
+   304→            {/* Budget */}
+   305→            {project.budget > 0 && (
+   306→              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+   307→                <DollarSign className="h-3 w-3" />
+   308→                <span>{project.budget.toLocaleString()}</span>
+   309→              </div>
+   310→            )}
+   311→
+   312→            {/* Actions */}
+   313→            <div
+   314→              className="flex items-center gap-1 pt-1 border-t"
+   315→              onClick={(e) => e.stopPropagation()}
+   316→            >
+   317→              <Button
+   318→                variant="ghost"
+   319→                size="sm"
+   320→                className="h-7 text-xs"
+   321→                onClick={() => openEdit(project)}
+   322→              >
+   323→                <Pencil className="mr-1 h-3 w-3" />
+   324→                Edit
+   325→              </Button>
+   326→              <Button
+   327→                variant="ghost"
+   328→                size="sm"
+   329→                className="h-7 text-xs text-destructive hover:text-destructive"
+   330→                onClick={() => setDeleteTarget(project)}
+   331→              >
+   332→                <Trash2 className="mr-1 h-3 w-3" />
+   333→                Delete
+   334→              </Button>
+   335→            </div>
+   336→          </CardContent>
+   337→        </Card>
+   338→      </motion.div>
+   339→    );
+   340→  }
+   341→
+   342→  return (
+   343→    <motion.div variants={container} initial="hidden" animate="show" className="space-y-6">
+   344→      {/* Header */}
+   345→      <motion.div variants={item} className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+   346→        <div>
+   347→          <h2 className="text-2xl font-bold tracking-tight">Projects</h2>
+   348→          <p className="text-muted-foreground">
+   349→            Manage and track all projects
+   350→          </p>
+   351→        </div>
+   352→        <Button onClick={openCreate} className="bg-emerald-600 hover:bg-emerald-700">
+   353→          <Plus className="mr-2 h-4 w-4" />
+   354→          Add Project
+   355→        </Button>
+   356→      </motion.div>
+   357→
+   358→      {/* Filters */}
+   359→      <motion.div variants={item} className="flex flex-col gap-3 sm:flex-row sm:items-center">
+   360→        <div className="relative flex-1 max-w-sm">
+   361→          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+   362→          <Input placeholder="Filter by customer..." className="pl-9" disabled />
+   363→          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">
+   364→            Use customer filter below
+   365→          </span>
+   366→        </div>
+   367→        <div className="flex items-center gap-2 flex-wrap">
+   368→          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+   369→            <SelectTrigger className="w-[170px] h-9">
+   370→              <SelectValue placeholder="Category" />
+   371→            </SelectTrigger>
+   372→            <SelectContent>
+   373→              <SelectItem value="all">All Categories</SelectItem>
+   374→              {Object.entries(PROJECT_CATEGORIES).map(([key, val]) => (
+   375→                <SelectItem key={key} value={val}>
+   376→                  {CATEGORY_LABELS[val]}
+   377→                </SelectItem>
+   378→              ))}
+   379→            </SelectContent>
+   380→          </Select>
+   381→          <Select value={statusFilter} onValueChange={setStatusFilter}>
+   382→            <SelectTrigger className="w-[160px] h-9">
+   383→              <SelectValue placeholder="Status" />
+   384→            </SelectTrigger>
+   385→            <SelectContent>
+   386→              <SelectItem value="all">All Statuses</SelectItem>
+   387→              {Object.entries(PROJECT_STATUSES).map(([key, val]) => (
+   388→                <SelectItem key={key} value={val}>
+   389→                  {STATUS_LABELS[val]}
+   390→                </SelectItem>
+   391→              ))}
+   392→            </SelectContent>
+   393→          </Select>
+   394→          <div className="flex items-center rounded-md border p-0.5">
+   395→            <Button
+   396→              variant={viewMode === 'card' ? 'secondary' : 'ghost'}
+   397→              size="icon"
+   398→              className="h-7 w-7"
+   399→              onClick={() => setViewMode('card')}
+   400→            >
+   401→              <LayoutGrid className="h-3.5 w-3.5" />
+   402→            </Button>
+   403→            <Button
+   404→              variant={viewMode === 'table' ? 'secondary' : 'ghost'}
+   405→              size="icon"
+   406→              className="h-7 w-7"
+   407→              onClick={() => setViewMode('table')}
+   408→            >
+   409→              <List className="h-3.5 w-3.5" />
+   410→            </Button>
+   411→          </div>
+   412→        </div>
+   413→      </motion.div>
+   414→
+   415→      {/* Content */}
+   416→      <motion.div variants={item}>
+   417→        {isLoading ? (
+   418→          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+   419→            {Array.from({ length: 6 }).map((_, i) => (
+   420→              <Skeleton key={i} className="h-56 w-full" />
+   421→            ))}
+   422→          </div>
+   423→        ) : projects.length === 0 ? (
+   424→          <div className="flex flex-col items-center justify-center gap-3 py-16">
+   425→            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+   426→              <FolderKanban className="h-8 w-8 text-muted-foreground" />
+   427→            </div>
+   428→            <div className="text-center">
+   429→              <p className="text-sm font-medium">No projects found</p>
+   430→              <p className="text-xs text-muted-foreground">
+   431→                Try adjusting your filters or click "Add Project" to get started
+   432→              </p>
+   433→            </div>
+   434→          </div>
+   435→        ) : viewMode === 'card' ? (
+   436→          <motion.div
+   437→            variants={container}
+   438→            initial="hidden"
+   439→            animate="show"
+   440→            className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
+   441→          >
+   442→            {projects.map((project) => (
+   443→              <ProjectCard key={project.id} project={project} />
+   444→            ))}
+   445→          </motion.div>
+   446→        ) : (
+   447→          <Card className="overflow-hidden">
+   448→            <div className="overflow-x-auto">
+   449→              <Table>
+   450→                <TableHeader>
+   451→                  <TableRow>
+   452→                    <TableHead>Name</TableHead>
+   453→                    <TableHead>Customer</TableHead>
+   454→                    <TableHead>Category</TableHead>
+   455→                    <TableHead>Status</TableHead>
+   456→                    <TableHead className="hidden md:table-cell">Priority</TableHead>
+   457→                    <TableHead className="hidden lg:table-cell">Progress</TableHead>
+   458→                    <TableHead className="hidden xl:table-cell">End Date</TableHead>
+   459→                    <TableHead className="text-right">Actions</TableHead>
+   460→                  </TableRow>
+   461→                </TableHeader>
+   462→                <TableBody>
+   463→                  {projects.map((project) => (
+   464→                    <TableRow
+   465→                      key={project.id}
+   466→                      className="cursor-pointer hover:bg-muted/50"
+   467→                      onClick={() => onProjectClick(project.id)}
+   468→                    >
+   469→                      <TableCell className="font-medium max-w-[180px] truncate">
+   470→                        {project.name}
+   471→                      </TableCell>
+   472→                      <TableCell className="text-muted-foreground max-w-[140px] truncate">
+   473→                        {project.customer?.company || '—'}
+   474→                      </TableCell>
+   475→                      <TableCell>
+   476→                        <Badge
+   477→                          variant="secondary"
+   478→                          className={cn('text-[10px]', getCategoryClass(project.category))}
+   479→                        >
+   480→                          {CATEGORY_LABELS[project.category]}
+   481→                        </Badge>
+   482→                      </TableCell>
+   483→                      <TableCell>
+   484→                        <Badge
+   485→                          variant="secondary"
+   486→                          className={cn('text-[10px]', getStatusClass(project.status))}
+   487→                        >
+   488→                          {STATUS_LABELS[project.status]}
+   489→                        </Badge>
+   490→                      </TableCell>
+   491→                      <TableCell className="hidden md:table-cell">
+   492→                        <Badge
+   493→                          variant="secondary"
+   494→                          className={cn('text-[10px]', getPriorityClass(project.priority))}
+   495→                        >
+   496→                          {PRIORITY_LABELS[project.priority]}
+   497→                        </Badge>
+   498→                      </TableCell>
+   499→                      <TableCell className="hidden lg:table-cell">
+   500→                        <div className="flex items-center gap-2">
+   501→                          <div className="h-1.5 w-16 overflow-hidden rounded-full bg-muted">
+   502→                            <div
+   503→                              className={cn(
+   504→                                'h-full rounded-full',
+   505→                                getProgressColor(project.progress)
+   506→                              )}
+   507→                              style={{ width: `${project.progress}%` }}
+   508→                            />
+   509→                          </div>
+   510→                          <span className="text-xs text-muted-foreground">
+   511→                            {project.progress}%
+   512→                          </span>
+   513→                        </div>
+   514→                      </TableCell>
+   515→                      <TableCell className="hidden xl:table-cell text-muted-foreground text-sm">
+   516→                        {project.endDate
+   517→                          ? format(new Date(project.endDate), 'MMM dd, yyyy')
+   518→                          : '—'}
+   519→                      </TableCell>
+   520→                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+   521→                        <div className="flex items-center justify-end gap-1">
+   522→                          <Button
+   523→                            variant="ghost"
+   524→                            size="icon"
+   525→                            className="h-8 w-8"
+   526→                            onClick={() => openEdit(project)}
+   527→                          >
+   528→                            <Pencil className="h-3.5 w-3.5" />
+   529→                          </Button>
+   530→                          <Button
+   531→                            variant="ghost"
+   532→                            size="icon"
+   533→                            className="h-8 w-8 text-destructive hover:text-destructive"
+   534→                            onClick={() => setDeleteTarget(project)}
+   535→                          >
+   536→                            <Trash2 className="h-3.5 w-3.5" />
+   537→                          </Button>
+   538→                        </div>
+   539→                      </TableCell>
+   540→                    </TableRow>
+   541→                  ))}
+   542→                </TableBody>
+   543→              </Table>
+   544→            </div>
+   545→          </Card>
+   546→        )}
+   547→      </motion.div>
+   548→
+   549→      {/* Add/Edit Dialog */}
+   550→      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+   551→        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+   552→          <DialogHeader>
+   553→            <DialogTitle>
+   554→              {editingProject ? 'Edit Project' : 'Add Project'}
+   555→            </DialogTitle>
+   556→          </DialogHeader>
+   557→          <div className="grid gap-4 py-4">
+   558→            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+   559→              <div className="space-y-2 sm:col-span-2">
+   560→                <Label htmlFor="proj-name">Project Name *</Label>
+   561→                <Input
+   562→                  id="proj-name"
+   563→                  value={form.name}
+   564→                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+   565→                  placeholder="New Website Redesign"
+   566→                />
+   567→              </div>
+   568→              <div className="space-y-2">
+   569→                <Label htmlFor="proj-customer">Customer *</Label>
+   570→                <Select
+   571→                  value={form.customerId}
+   572→                  onValueChange={(val) => setForm({ ...form, customerId: val })}
+   573→                >
+   574→                  <SelectTrigger>
+   575→                    <SelectValue placeholder="Select customer" />
+   576→                  </SelectTrigger>
+   577→                  <SelectContent>
+   578→                    {customers.map((c) => (
+   579→                      <SelectItem key={c.id} value={c.id}>
+   580→                        {c.name} — {c.company}
+   581→                      </SelectItem>
+   582→                    ))}
+   583→                  </SelectContent>
+   584→                </Select>
+   585→              </div>
+   586→              <div className="space-y-2">
+   587→                <Label htmlFor="proj-category">Category</Label>
+   588→                <Select
+   589→                  value={form.category}
+   590→                  onValueChange={(val) =>
+   591→                    setForm({ ...form, category: val as ProjectCategory })
+   592→                  }
+   593→                >
+   594→                  <SelectTrigger>
+   595→                    <SelectValue />
+   596→                  </SelectTrigger>
+   597→                  <SelectContent>
+   598→                    {Object.entries(PROJECT_CATEGORIES).map(([key, val]) => (
+   599→                      <SelectItem key={key} value={val}>
+   600→                        {CATEGORY_LABELS[val]}
+   601→                      </SelectItem>
+   602→                    ))}
+   603→                  </SelectContent>
+   604→                </Select>
+   605→              </div>
+   606→              <div className="space-y-2">
+   607→                <Label htmlFor="proj-status">Status</Label>
+   608→                <Select
+   609→                  value={form.status}
+   610→                  onValueChange={(val) =>
+   611→                    setForm({ ...form, status: val as ProjectStatus })
+   612→                  }
+   613→                >
+   614→                  <SelectTrigger>
+   615→                    <SelectValue />
+   616→                  </SelectTrigger>
+   617→                  <SelectContent>
+   618→                    {Object.entries(PROJECT_STATUSES).map(([key, val]) => (
+   619→                      <SelectItem key={key} value={val}>
+   620→                        {STATUS_LABELS[val]}
+   621→                      </SelectItem>
+   622→                    ))}
+   623→                  </SelectContent>
+   624→                </Select>
+   625→              </div>
+   626→              <div className="space-y-2">
+   627→                <Label htmlFor="proj-priority">Priority</Label>
+   628→                <Select
+   629→                  value={form.priority}
+   630→                  onValueChange={(val) =>
+   631→                    setForm({ ...form, priority: val as Priority })
+   632→                  }
+   633→                >
+   634→                  <SelectTrigger>
+   635→                    <SelectValue />
+   636→                  </SelectTrigger>
+   637→                  <SelectContent>
+   638→                    {Object.entries(PRIORITIES).map(([key, val]) => (
+   639→                      <SelectItem key={key} value={val}>
+   640→                        {PRIORITY_LABELS[val]}
+   641→                      </SelectItem>
+   642→                    ))}
+   643→                  </SelectContent>
+   644→                </Select>
+   645→              </div>
+   646→              <div className="space-y-2">
+   647→                <Label htmlFor="proj-start">Start Date</Label>
+   648→                <Input
+   649→                  id="proj-start"
+   650→                  type="date"
+   651→                  value={form.startDate}
+   652→                  onChange={(e) => setForm({ ...form, startDate: e.target.value })}
+   653→                />
+   654→              </div>
+   655→              <div className="space-y-2">
+   656→                <Label htmlFor="proj-end">End Date</Label>
+   657→                <Input
+   658→                  id="proj-end"
+   659→                  type="date"
+   660→                  value={form.endDate}
+   661→                  onChange={(e) => setForm({ ...form, endDate: e.target.value })}
+   662→                />
+   663→              </div>
+   664→              <div className="space-y-2">
+   665→                <Label htmlFor="proj-budget">Budget</Label>
+   666→                <Input
+   667→                  id="proj-budget"
+   668→                  type="number"
+   669→                  min="0"
+   670→                  step="1000"
+   671→                  value={form.budget || ''}
+   672→                  onChange={(e) =>
+   673→                    setForm({ ...form, budget: parseFloat(e.target.value) || 0 })
+   674→                  }
+   675→                  placeholder="50000"
+   676→                />
+   677→              </div>
+   678→              <div className="space-y-2">
+   679→                <Label htmlFor="proj-progress">Progress (%)</Label>
+   680→                <Input
+   681→                  id="proj-progress"
+   682→                  type="number"
+   683→                  min="0"
+   684→                  max="100"
+   685→                  value={form.progress}
+   686→                  onChange={(e) =>
+   687→                    setForm({
+   688→                      ...form,
+   689→                      progress: Math.min(100, Math.max(0, parseInt(e.target.value) || 0)),
+   690→                    })
+   691→                  }
+   692→                />
+   693→              </div>
+   694→            </div>
+   695→            <div className="space-y-2">
+   696→              <Label htmlFor="proj-desc">Description</Label>
+   697→              <Textarea
+   698→                id="proj-desc"
+   699→                value={form.description}
+   700→                onChange={(e) => setForm({ ...form, description: e.target.value })}
+   701→                placeholder="Project description..."
+   702→                rows={3}
+   703→              />
+   704→            </div>
+   705→            <div className="space-y-2">
+   706→              <Label htmlFor="proj-notes">Notes</Label>
+   707→              <Textarea
+   708→                id="proj-notes"
+   709→                value={form.notes}
+   710→                onChange={(e) => setForm({ ...form, notes: e.target.value })}
+   711→                placeholder="Additional notes..."
+   712→                rows={2}
+   713→              />
+   714→            </div>
+   715→          </div>
+   716→          <DialogFooter>
+   717→            <Button variant="outline" onClick={() => setIsFormOpen(false)}>
+   718→              Cancel
+   719→            </Button>
+   720→            <Button
+   721→              onClick={handleSubmit}
+   722→              disabled={!form.name.trim() || !form.customerId}
+   723→              className="bg-emerald-600 hover:bg-emerald-700"
+   724→            >
+   725→              {editingProject ? 'Update' : 'Create'}
+   726→            </Button>
+   727→          </DialogFooter>
+   728→        </DialogContent>
+   729→      </Dialog>
+   730→
+   731→      {/* Delete Confirmation */}
+   732→      <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
+   733→        <AlertDialogContent>
+   734→          <AlertDialogHeader>
+   735→            <AlertDialogTitle>Delete Project</AlertDialogTitle>
+   736→            <AlertDialogDescription>
+   737→              Are you sure you want to delete <strong>{deleteTarget?.name}</strong>? This
+   738→              action cannot be undone and will also delete all associated timelines,
+   739→              reports, and uploaded files.
+   740→            </AlertDialogDescription>
+   741→          </AlertDialogHeader>
+   742→          <AlertDialogFooter>
+   743→            <AlertDialogCancel>Cancel</AlertDialogCancel>
+   744→            <AlertDialogAction
+   745→              onClick={handleDelete}
+   746→              className="bg-destructive text-white hover:bg-destructive/90"
+   747→            >
+   748→              Delete
+   749→            </AlertDialogAction>
+   750→          </AlertDialogFooter>
+   751→        </AlertDialogContent>
+   752→      </AlertDialog>
+   753→    </motion.div>
+   754→  );
+   755→}

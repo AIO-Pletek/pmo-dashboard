@@ -6,8 +6,8 @@ export async function GET() {
     const [
       totalCustomers,
       totalProjects,
-      projectsByCategory,
-      projectsByStatus,
+      projectsByCategoryRaw,
+      projectsByStatusRaw,
       recentProjects,
       upcomingDeadlines,
     ] = await Promise.all([
@@ -55,17 +55,30 @@ export async function GET() {
         : null,
     })
 
+    // Convert groupBy arrays to Record<string, number>
+    const projectsByCategory: Record<string, number> = {}
+    for (const item of projectsByCategoryRaw) {
+      projectsByCategory[item.category] = item._count.category
+    }
+    // Ensure all categories present
+    if (!projectsByCategory.ONGOING_CUSTOMER) projectsByCategory.ONGOING_CUSTOMER = 0
+    if (!projectsByCategory.POC_CUSTOMER) projectsByCategory.POC_CUSTOMER = 0
+
+    const projectsByStatus: Record<string, number> = {}
+    for (const item of projectsByStatusRaw) {
+      projectsByStatus[item.status] = item._count.status
+    }
+    // Ensure all statuses present
+    const allStatuses = ['PLANNING', 'IN_PROGRESS', 'ON_HOLD', 'COMPLETED', 'CANCELLED']
+    for (const s of allStatuses) {
+      if (!projectsByStatus[s]) projectsByStatus[s] = 0
+    }
+
     return NextResponse.json({
       totalCustomers,
       totalProjects,
-      projectsByCategory: projectsByCategory.map((item) => ({
-        category: item.category,
-        count: item._count.category,
-      })),
-      projectsByStatus: projectsByStatus.map((item) => ({
-        status: item.status,
-        count: item._count.status,
-      })),
+      projectsByCategory,
+      projectsByStatus,
       recentProjects: recentProjects.map(formatProject),
       upcomingDeadlines: upcomingDeadlines.map(formatProject),
     })

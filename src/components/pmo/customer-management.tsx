@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Search, Pencil, Trash2, Users } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, Users, FolderKanban } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
@@ -41,6 +42,9 @@ import {
   useDeleteCustomer,
 } from './use-pmo-data';
 import type { Customer } from './types';
+
+// Extended type to include projectCount from API response
+type CustomerWithCount = Customer & { projectCount?: number };
 
 const emptyForm: Omit<Customer, 'id' | 'createdAt' | 'updatedAt'> = {
   name: '',
@@ -81,7 +85,7 @@ export function CustomerManagement() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  const customers = data?.data || [];
+  const customers: CustomerWithCount[] = data?.data || [];
 
   const openCreate = () => {
     setEditingCustomer(null);
@@ -159,16 +163,24 @@ export function CustomerManagement() {
                 ))}
               </div>
             ) : customers.length === 0 ? (
-              <div className="flex flex-col items-center justify-center gap-3 py-16">
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
-                  <Users className="h-8 w-8 text-muted-foreground" />
+              <div className="flex flex-col items-center justify-center gap-4 py-20">
+                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-50 dark:bg-emerald-950/30">
+                  <Users className="h-10 w-10 text-emerald-500" />
                 </div>
                 <div className="text-center">
-                  <p className="text-sm font-medium">No customers found</p>
-                  <p className="text-xs text-muted-foreground">
-                    {search ? 'Try a different search term' : 'Click "Add Customer" to get started'}
+                  <p className="text-base font-semibold">No customers yet</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Add your first customer to get started
                   </p>
                 </div>
+                <Button
+                  onClick={openCreate}
+                  variant="outline"
+                  className="mt-2 border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 dark:border-emerald-700 dark:text-emerald-400 dark:hover:bg-emerald-950/50"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add your first customer
+                </Button>
               </div>
             ) : (
               <Table>
@@ -177,6 +189,7 @@ export function CustomerManagement() {
                     <TableHead>Name</TableHead>
                     <TableHead>Company</TableHead>
                     <TableHead className="hidden md:table-cell">Industry</TableHead>
+                    <TableHead className="hidden lg:table-cell">Projects</TableHead>
                     <TableHead className="hidden lg:table-cell">Email</TableHead>
                     <TableHead className="hidden xl:table-cell">Phone</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -184,11 +197,22 @@ export function CustomerManagement() {
                 </TableHeader>
                 <TableBody>
                   {customers.map((customer) => (
-                    <TableRow key={customer.id} className="group">
+                    <TableRow
+                      key={customer.id}
+                      className="group cursor-pointer transition-colors hover:bg-muted/60"
+                    >
                       <TableCell className="font-medium">{customer.name}</TableCell>
                       <TableCell>{customer.company}</TableCell>
                       <TableCell className="hidden md:table-cell text-muted-foreground">
                         {customer.industry || '—'}
+                      </TableCell>
+                      <TableCell className="hidden lg:table-cell">
+                        <Badge
+                          variant="secondary"
+                          className="font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
+                        >
+                          {customer.projectCount ?? 0}
+                        </Badge>
                       </TableCell>
                       <TableCell className="hidden lg:table-cell text-muted-foreground">
                         {customer.email || '—'}
@@ -196,7 +220,7 @@ export function CustomerManagement() {
                       <TableCell className="hidden xl:table-cell text-muted-foreground">
                         {customer.phone || '—'}
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-1">
                           <Button
                             variant="ghost"
@@ -348,4 +372,3 @@ export function CustomerManagement() {
     </motion.div>
   );
 }
-

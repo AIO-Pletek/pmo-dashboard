@@ -5,21 +5,49 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const projectId = searchParams.get('projectId') || ''
+    const type = searchParams.get('type') || ''
+    const status = searchParams.get('status') || ''
 
     const where: Record<string, unknown> = {}
     if (projectId) where.projectId = projectId
+    if (type) where.type = type
+    if (status) where.status = status
 
     const reports = await db.report.findMany({
       where,
       orderBy: { createdAt: 'desc' },
+      include: {
+        project: {
+          include: { customer: true },
+        },
+      },
     })
 
     const total = await db.report.count({ where })
+
+    const serializeDate = (d: Date | null) =>
+      d ? d.toISOString() : null
 
     const data = reports.map((r) => ({
       ...r,
       createdAt: r.createdAt.toISOString(),
       updatedAt: r.updatedAt.toISOString(),
+      project: r.project
+        ? {
+            ...r.project,
+            startDate: serializeDate(r.project.startDate),
+            endDate: serializeDate(r.project.endDate),
+            createdAt: r.project.createdAt.toISOString(),
+            updatedAt: r.project.updatedAt.toISOString(),
+            customer: r.project.customer
+              ? {
+                  ...r.project.customer,
+                  createdAt: r.project.customer.createdAt.toISOString(),
+                  updatedAt: r.project.customer.updatedAt.toISOString(),
+                }
+              : null,
+          }
+        : null,
     }))
 
     return NextResponse.json({ data, total })

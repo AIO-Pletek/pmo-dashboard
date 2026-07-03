@@ -1,0 +1,872 @@
+     1→'use client';
+     2→
+     3→import { useState } from 'react';
+     4→import { motion } from 'framer-motion';
+     5→import { format, differenceInDays, isAfter, isBefore, addDays } from 'date-fns';
+     6→import {
+     7→  ArrowLeft,
+     8→  Calendar,
+     9→  DollarSign,
+    10→  User,
+    11→  FileText,
+    12→  Clock,
+    13→  Plus,
+    14→  Pencil,
+    15→  Trash2,
+    16→  GripVertical,
+    17→} from 'lucide-react';
+    18→import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+    19→import { Button } from '@/components/ui/button';
+    20→import { Input } from '@/components/ui/input';
+    21→import { Label } from '@/components/ui/label';
+    22→import { Textarea } from '@/components/ui/textarea';
+    23→import { Badge } from '@/components/ui/badge';
+    24→import { Progress } from '@/components/ui/progress';
+    25→import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+    26→import { Separator } from '@/components/ui/separator';
+    27→import {
+    28→  Select,
+    29→  SelectContent,
+    30→  SelectItem,
+    31→  SelectTrigger,
+    32→  SelectValue,
+    33→} from '@/components/ui/select';
+    34→import {
+    35→  Dialog,
+    36→  DialogContent,
+    37→  DialogHeader,
+    38→  DialogTitle,
+    39→  DialogFooter,
+    40→} from '@/components/ui/dialog';
+    41→import {
+    42→  AlertDialog,
+    43→  AlertDialogAction,
+    44→  AlertDialogCancel,
+    45→  AlertDialogContent,
+    46→  AlertDialogDescription,
+    47→  AlertDialogFooter,
+    48→  AlertDialogHeader,
+    49→  AlertDialogTitle,
+    50→} from '@/components/ui/alert-dialog';
+    51→import { Skeleton } from '@/components/ui/skeleton';
+    52→import { cn } from '@/lib/utils';
+    53→import {
+    54→  useProject,
+    55→  useTimelines,
+    56→  useCreateTimeline,
+    57→  useUpdateTimeline,
+    58→  useDeleteTimeline,
+    59→  useCreateReport,
+    60→  useDeleteReport,
+    61→  useReports,
+    62→} from './use-pmo-data';
+    63→import {
+    64→  STATUS_LABELS,
+    65→  CATEGORY_LABELS,
+    66→  PRIORITY_LABELS,
+    67→  TIMELINE_STATUS_LABELS,
+    68→  REPORT_TYPE_LABELS,
+    69→  REPORT_STATUS_LABELS,
+    70→  REPORT_TYPES,
+    71→  REPORT_STATUSES,
+    72→  TIMELINE_STATUSES,
+    73→  type Timeline,
+    74→  type TimelineStatus,
+    75→  type ReportType,
+    76→  type ReportStatus,
+    77→} from './types';
+    78→
+    79→// Badge helpers
+    80→function getStatusClass(status: string) {
+    81→  switch (status) {
+    82→    case 'IN_PROGRESS':
+    83→      return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300';
+    84→    case 'COMPLETED':
+    85→      return 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300';
+    86→    case 'ON_HOLD':
+    87→      return 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300';
+    88→    case 'CANCELLED':
+    89→      return 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300';
+    90→    default:
+    91→      return 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300';
+    92→  }
+    93→}
+    94→
+    95→function getCategoryClass(category: string) {
+    96→  switch (category) {
+    97→    case 'ONGOING_CUSTOMER':
+    98→      return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300';
+    99→    case 'POC_CUSTOMER':
+   100→      return 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300';
+   101→    default:
+   102→      return '';
+   103→  }
+   104→}
+   105→
+   106→function getPriorityClass(priority: string) {
+   107→  switch (priority) {
+   108→    case 'LOW':
+   109→      return 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300';
+   110→    case 'MEDIUM':
+   111→      return 'bg-teal-100 text-teal-700 dark:bg-teal-950 dark:text-teal-300';
+   112→    case 'HIGH':
+   113→      return 'bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300';
+   114→    case 'CRITICAL':
+   115→      return 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300';
+   116→    default:
+   117→      return '';
+   118→  }
+   119→}
+   120→
+   121→function getTimelineStatusClass(status: string) {
+   122→  switch (status) {
+   123→    case 'IN_PROGRESS':
+   124→      return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300';
+   125→    case 'COMPLETED':
+   126→      return 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300';
+   127→    case 'DELAYED':
+   128→      return 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300';
+   129→    default:
+   130→      return 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300';
+   131→  }
+   132→}
+   133→
+   134→function getProgressColor(progress: number) {
+   135→  if (progress >= 80) return '[&>div]:bg-green-500';
+   136→  if (progress >= 50) return '[&>div]:bg-emerald-500';
+   137→  if (progress >= 25) return '[&>div]:bg-amber-500';
+   138→  return '[&>div]:bg-gray-400';
+   139→}
+   140→
+   141→interface ProjectDetailProps {
+   142→  projectId: string;
+   143→  onBack: () => void;
+   144→}
+   145→
+   146→export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
+   147→  const [activeTab, setActiveTab] = useState('overview');
+   148→
+   149→  // Timeline state
+   150→  const [isTimelineOpen, setIsTimelineOpen] = useState(false);
+   151→  const [editingTimeline, setEditingTimeline] = useState<Timeline | null>(null);
+   152→  const [deleteTimelineTarget, setDeleteTimelineTarget] = useState<Timeline | null>(null);
+   153→  const [timelineForm, setTimelineForm] = useState({
+   154→    taskName: '',
+   155→    startDate: '',
+   156→    endDate: '',
+   157→    status: 'NOT_STARTED' as TimelineStatus,
+   158→    progress: 0,
+   159→    assignee: '',
+   160→    notes: '',
+   161→    taskOrder: 0,
+   162→  });
+   163→
+   164→  // Report state
+   165→  const [isReportOpen, setIsReportOpen] = useState(false);
+   166→  const [reportForm, setReportForm] = useState({
+   167→    title: '',
+   168→    type: 'WEEKLY' as ReportType,
+   169→    content: '',
+   170→    status: 'DRAFT' as ReportStatus,
+   171→  });
+   172→
+   173→  const { data: projectData, isLoading } = useProject(projectId);
+   174→  const { data: timelinesData } = useTimelines(projectId);
+   175→  const { data: reportsData } = useReports({ projectId });
+   176→
+   177→  const createTimeline = useCreateTimeline();
+   178→  const updateTimeline = useUpdateTimeline();
+   179→  const deleteTimeline = useDeleteTimeline();
+   180→  const createReport = useCreateReport();
+   181→  const deleteReport = useDeleteReport();
+   182→
+   183→  const project = projectData?.data;
+   184→  const timelines = timelinesData?.data || [];
+   185→  const reports = reportsData?.data || [];
+   186→
+   187→  // Timeline handlers
+   188→  const openCreateTimeline = () => {
+   189→    setEditingTimeline(null);
+   190→    setTimelineForm({
+   191→      taskName: '',
+   192→      startDate: '',
+   193→      endDate: '',
+   194→      status: 'NOT_STARTED',
+   195→      progress: 0,
+   196→      assignee: '',
+   197→      notes: '',
+   198→      taskOrder: timelines.length,
+   199→    });
+   200→    setIsTimelineOpen(true);
+   201→  };
+   202→
+   203→  const openEditTimeline = (tl: Timeline) => {
+   204→    setEditingTimeline(tl);
+   205→    setTimelineForm({
+   206→      taskName: tl.taskName,
+   207→      startDate: tl.startDate ? format(new Date(tl.startDate), 'yyyy-MM-dd') : '',
+   208→      endDate: tl.endDate ? format(new Date(tl.endDate), 'yyyy-MM-dd') : '',
+   209→      status: tl.status,
+   210→      progress: tl.progress,
+   211→      assignee: tl.assignee,
+   212→      notes: tl.notes,
+   213→      taskOrder: tl.taskOrder,
+   214→    });
+   215→    setIsTimelineOpen(true);
+   216→  };
+   217→
+   218→  const handleTimelineSubmit = () => {
+   219→    if (!timelineForm.taskName.trim()) return;
+   220→    const payload = {
+   221→      ...timelineForm,
+   222→      projectId,
+   223→      startDate: timelineForm.startDate ? new Date(timelineForm.startDate).toISOString() : null,
+   224→      endDate: timelineForm.endDate ? new Date(timelineForm.endDate).toISOString() : null,
+   225→    };
+   226→    if (editingTimeline) {
+   227→      updateTimeline.mutate({ id: editingTimeline.id, ...payload });
+   228→    } else {
+   229→      createTimeline.mutate(payload);
+   230→    }
+   231→    setIsTimelineOpen(false);
+   232→  };
+   233→
+   234→  // Report handlers
+   235→  const handleReportSubmit = () => {
+   236→    if (!reportForm.title.trim()) return;
+   237→    createReport.mutate({ ...reportForm, projectId });
+   238→    setIsReportOpen(false);
+   239→    setReportForm({ title: '', type: 'WEEKLY', content: '', status: 'DRAFT' });
+   240→  };
+   241→
+   242→  if (isLoading) {
+   243→    return (
+   244→      <div className="space-y-6">
+   245→        <Skeleton className="h-8 w-32" />
+   246→        <Skeleton className="h-40 w-full" />
+   247→        <Skeleton className="h-60 w-full" />
+   248→      </div>
+   249→    );
+   250→  }
+   251→
+   252→  if (!project) {
+   253→    return (
+   254→      <div className="flex flex-col items-center justify-center gap-4 py-16">
+   255→        <p className="text-muted-foreground">Project not found</p>
+   256→        <Button variant="outline" onClick={onBack}>
+   257→          <ArrowLeft className="mr-2 h-4 w-4" />
+   258→          Go Back
+   259→        </Button>
+   260→      </div>
+   261→    );
+   262→  }
+   263→
+   264→  const totalDays =
+   265→    project.startDate && project.endDate
+   266→      ? differenceInDays(new Date(project.endDate), new Date(project.startDate))
+   267→      : null;
+   268→
+   269→  return (
+   270→    <motion.div
+   271→      initial={{ opacity: 0, x: 20 }}
+   272→      animate={{ opacity: 1, x: 0 }}
+   273→      transition={{ duration: 0.3 }}
+   274→      className="space-y-6"
+   275→    >
+   276→      {/* Back Button */}
+   277→      <Button variant="ghost" size="sm" onClick={onBack} className="gap-2">
+   278→        <ArrowLeft className="h-4 w-4" />
+   279→        Back to Projects
+   280→      </Button>
+   281→
+   282→      {/* Project Header */}
+   283→      <Card>
+   284→        <CardContent className="p-6">
+   285→          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+   286→            <div className="space-y-2 min-w-0">
+   287→              <h2 className="text-2xl font-bold tracking-tight truncate">{project.name}</h2>
+   288→              <p className="text-sm text-muted-foreground">
+   289→                {project.customer?.company} — {project.customer?.name}
+   290→              </p>
+   291→              <div className="flex flex-wrap items-center gap-2">
+   292→                <Badge
+   293→                  variant="secondary"
+   294→                  className={cn('font-medium', getCategoryClass(project.category))}
+   295→                >
+   296→                  {CATEGORY_LABELS[project.category]}
+   297→                </Badge>
+   298→                <Badge
+   299→                  variant="secondary"
+   300→                  className={cn('font-medium', getStatusClass(project.status))}
+   301→                >
+   302→                  {STATUS_LABELS[project.status]}
+   303→                </Badge>
+   304→                <Badge
+   305→                  variant="secondary"
+   306→                  className={cn('font-medium', getPriorityClass(project.priority))}
+   307→                >
+   308→                  {PRIORITY_LABELS[project.priority]}
+   309→                </Badge>
+   310→              </div>
+   311→            </div>
+   312→            <div className="flex items-center gap-6 text-sm text-muted-foreground shrink-0">
+   313→              {project.budget > 0 && (
+   314→                <div className="flex items-center gap-1.5">
+   315→                  <DollarSign className="h-4 w-4" />
+   316→                  <span className="font-medium text-foreground">
+   317→                    {project.budget.toLocaleString()}
+   318→                  </span>
+   319→                </div>
+   320→              )}
+   321→              {totalDays !== null && totalDays > 0 && (
+   322→                <div className="flex items-center gap-1.5">
+   323→                  <Calendar className="h-4 w-4" />
+   324→                  <span>{totalDays} days</span>
+   325→                </div>
+   326→              )}
+   327→            </div>
+   328→          </div>
+   329→
+   330→          {/* Progress */}
+   331→          <div className="mt-5 space-y-2">
+   332→            <div className="flex items-center justify-between text-sm">
+   333→              <span className="text-muted-foreground">Overall Progress</span>
+   334→              <span className="font-semibold text-emerald-600">{project.progress}%</span>
+   335→            </div>
+   336→            <Progress value={project.progress} className={cn('h-2.5', getProgressColor(project.progress))} />
+   337→          </div>
+   338→        </CardContent>
+   339→      </Card>
+   340→
+   341→      {/* Tabs */}
+   342→      <Tabs value={activeTab} onValueChange={setActiveTab}>
+   343→        <TabsList>
+   344→          <TabsTrigger value="overview">Overview</TabsTrigger>
+   345→          <TabsTrigger value="timeline">
+   346→            Timeline
+   347→            {timelines.length > 0 && (
+   348→              <Badge variant="secondary" className="ml-1.5 h-5 min-w-5 px-1.5 text-[10px]">
+   349→                {timelines.length}
+   350→              </Badge>
+   351→            )}
+   352→          </TabsTrigger>
+   353→          <TabsTrigger value="reports">
+   354→            Reports
+   355→            {reports.length > 0 && (
+   356→              <Badge variant="secondary" className="ml-1.5 h-5 min-w-5 px-1.5 text-[10px]">
+   357→                {reports.length}
+   358→              </Badge>
+   359→            )}
+   360→          </TabsTrigger>
+   361→        </TabsList>
+   362→
+   363→        {/* Overview Tab */}
+   364→        <TabsContent value="overview" className="mt-4 space-y-4">
+   365→          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+   366→            <InfoCard
+   367→              icon={Calendar}
+   368→              label="Start Date"
+   369→              value={project.startDate ? format(new Date(project.startDate), 'MMM dd, yyyy') : 'Not set'}
+   370→            />
+   371→            <InfoCard
+   372→              icon={Calendar}
+   373→              label="End Date"
+   374→              value={project.endDate ? format(new Date(project.endDate), 'MMM dd, yyyy') : 'Not set'}
+   375→            />
+   376→            <InfoCard
+   377→              icon={User}
+   378→              label="Customer Contact"
+   379→              value={project.customer?.email || 'Not provided'}
+   380→            />
+   381→          </div>
+   382→
+   383→          {project.description && (
+   384→            <Card>
+   385→              <CardHeader className="pb-2">
+   386→                <CardTitle className="text-sm font-semibold">Description</CardTitle>
+   387→              </CardHeader>
+   388→              <CardContent>
+   389→                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+   390→                  {project.description}
+   391→                </p>
+   392→              </CardContent>
+   393→            </Card>
+   394→          )}
+   395→
+   396→          {project.notes && (
+   397→            <Card>
+   398→              <CardHeader className="pb-2">
+   399→                <CardTitle className="text-sm font-semibold">Notes</CardTitle>
+   400→              </CardHeader>
+   401→              <CardContent>
+   402→                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+   403→                  {project.notes}
+   404→                </p>
+   405→              </CardContent>
+   406→            </Card>
+   407→          )}
+   408→        </TabsContent>
+   409→
+   410→        {/* Timeline Tab */}
+   411→        <TabsContent value="timeline" className="mt-4 space-y-4">
+   412→          <div className="flex items-center justify-between">
+   413→            <h3 className="text-sm font-semibold">Project Timeline</h3>
+   414→            <Button
+   415→              size="sm"
+   416→              className="bg-emerald-600 hover:bg-emerald-700"
+   417→              onClick={openCreateTimeline}
+   418→            >
+   419→              <Plus className="mr-1.5 h-3.5 w-3.5" />
+   420→              Add Task
+   421→            </Button>
+   422→          </div>
+   423→
+   424→          {timelines.length === 0 ? (
+   425→            <div className="flex flex-col items-center justify-center gap-3 py-12 rounded-lg border border-dashed">
+   426→              <Clock className="h-8 w-8 text-muted-foreground" />
+   427→              <p className="text-sm text-muted-foreground">
+   428→                No timeline entries yet. Add your first task.
+   429→              </p>
+   430→            </div>
+   431→          ) : (
+   432→            <div className="space-y-3">
+   433→              {timelines
+   434→                .sort((a, b) => a.taskOrder - b.taskOrder)
+   435→                .map((tl) => {
+   436→                  const start = tl.startDate ? new Date(tl.startDate) : null;
+   437→                  const end = tl.endDate ? new Date(tl.endDate) : null;
+   438→                  const isComplete = tl.status === 'COMPLETED';
+   439→
+   440→                  return (
+   441→                    <Card key={tl.id} className={cn('overflow-hidden', isComplete && 'opacity-70')}>
+   442→                      <CardContent className="p-4">
+   443→                        <div className="flex items-start gap-3">
+   444→                          {/* Left bar indicator */}
+   445→                          <div
+   446→                            className={cn(
+   447→                              'mt-1 h-full w-1 shrink-0 rounded-full',
+   448→                              tl.status === 'IN_PROGRESS'
+   449→                                ? 'bg-emerald-500'
+   450→                                : tl.status === 'COMPLETED'
+   451→                                  ? 'bg-green-500'
+   452→                                  : tl.status === 'DELAYED'
+   453→                                    ? 'bg-red-500'
+   454→                                    : 'bg-gray-300'
+   455→                            )}
+   456→                            style={{ minHeight: '40px' }}
+   457→                          />
+   458→
+   459→                          <div className="flex-1 min-w-0 space-y-2">
+   460→                            <div className="flex items-start justify-between gap-2">
+   461→                              <div>
+   462→                                <p className={cn('text-sm font-medium', isComplete && 'line-through')}>
+   463→                                  {tl.taskName}
+   464→                                </p>
+   465→                                {tl.assignee && (
+   466→                                  <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+   467→                                    <User className="h-3 w-3" />
+   468→                                    {tl.assignee}
+   469→                                  </p>
+   470→                                )}
+   471→                              </div>
+   472→                              <div className="flex items-center gap-1.5 shrink-0">
+   473→                                <Badge
+   474→                                  variant="secondary"
+   475→                                  className={cn('text-[10px]', getTimelineStatusClass(tl.status))}
+   476→                                >
+   477→                                  {TIMELINE_STATUS_LABELS[tl.status]}
+   478→                                </Badge>
+   479→                                <Button
+   480→                                  variant="ghost"
+   481→                                  size="icon"
+   482→                                  className="h-7 w-7"
+   483→                                  onClick={() => openEditTimeline(tl)}
+   484→                                >
+   485→                                  <Pencil className="h-3 w-3" />
+   486→                                </Button>
+   487→                                <Button
+   488→                                  variant="ghost"
+   489→                                  size="icon"
+   490→                                  className="h-7 w-7 text-destructive hover:text-destructive"
+   491→                                  onClick={() => setDeleteTimelineTarget(tl)}
+   492→                                >
+   493→                                  <Trash2 className="h-3 w-3" />
+   494→                                </Button>
+   495→                              </div>
+   496→                            </div>
+   497→
+   498→                            {/* Date range bar */}
+   499→                            {(start || end) && (
+   500→                              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+   501→                                {start && <span>{format(start, 'MMM dd')}</span>}
+   502→                                {start && end && <span>→</span>}
+   503→                                {end && <span>{format(end, 'MMM dd, yyyy')}</span>}
+   504→                              </div>
+   505→                            )}
+   506→
+   507→                            {/* Progress */}
+   508→                            <div className="flex items-center gap-2">
+   509→                              <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+   510→                                <div
+   511→                                  className={cn(
+   512→                                    'h-full rounded-full transition-all',
+   513→                                    tl.status === 'COMPLETED'
+   514→                                      ? 'bg-green-500'
+   515→                                      : tl.status === 'DELAYED'
+   516→                                        ? 'bg-red-500'
+   517→                                        : 'bg-emerald-500'
+   518→                                  )}
+   519→                                  style={{ width: `${tl.progress}%` }}
+   520→                                />
+   521→                              </div>
+   522→                              <span className="text-[11px] text-muted-foreground w-8 text-right">
+   523→                                {tl.progress}%
+   524→                              </span>
+   525→                            </div>
+   526→
+   527→                            {tl.notes && (
+   528→                              <p className="text-xs text-muted-foreground">{tl.notes}</p>
+   529→                            )}
+   530→                          </div>
+   531→                        </div>
+   532→                      </CardContent>
+   533→                    </Card>
+   534→                  );
+   535→                })}
+   536→            </div>
+   537→          )}
+   538→        </TabsContent>
+   539→
+   540→        {/* Reports Tab */}
+   541→        <TabsContent value="reports" className="mt-4 space-y-4">
+   542→          <div className="flex items-center justify-between">
+   543→            <h3 className="text-sm font-semibold">Project Reports</h3>
+   544→            <Button
+   545→              size="sm"
+   546→              className="bg-emerald-600 hover:bg-emerald-700"
+   547→              onClick={() => {
+   548→                setReportForm({ title: '', type: 'WEEKLY', content: '', status: 'DRAFT' });
+   549→                setIsReportOpen(true);
+   550→              }}
+   551→            >
+   552→              <Plus className="mr-1.5 h-3.5 w-3.5" />
+   553→              Add Report
+   554→            </Button>
+   555→          </div>
+   556→
+   557→          {reports.length === 0 ? (
+   558→            <div className="flex flex-col items-center justify-center gap-3 py-12 rounded-lg border border-dashed">
+   559→              <FileText className="h-8 w-8 text-muted-foreground" />
+   560→              <p className="text-sm text-muted-foreground">
+   561→                No reports yet. Create your first report.
+   562→              </p>
+   563→            </div>
+   564→          ) : (
+   565→            <div className="space-y-3">
+   566→              {reports.map((report) => (
+   567→                <Card key={report.id}>
+   568→                  <CardContent className="p-4">
+   569→                    <div className="flex items-start justify-between gap-3">
+   570→                      <div className="min-w-0 flex-1 space-y-1">
+   571→                        <p className="text-sm font-medium truncate">{report.title}</p>
+   572→                        <div className="flex items-center gap-2 flex-wrap">
+   573→                          <Badge variant="outline" className="text-[10px]">
+   574→                            {REPORT_TYPE_LABELS[report.type]}
+   575→                          </Badge>
+   576→                          <Badge
+   577→                            variant="secondary"
+   578→                            className={cn(
+   579→                              'text-[10px]',
+   580→                              report.status === 'APPROVED'
+   581→                                ? 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300'
+   582→                                : report.status === 'SUBMITTED'
+   583→                                  ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
+   584→                                  : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+   585→                            )}
+   586→                          >
+   587→                            {REPORT_STATUS_LABELS[report.status]}
+   588→                          </Badge>
+   589→                          <span className="text-[11px] text-muted-foreground">
+   590→                            {format(new Date(report.createdAt), 'MMM dd, yyyy')}
+   591→                          </span>
+   592→                        </div>
+   593→                        {report.content && (
+   594→                          <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
+   595→                            {report.content}
+   596→                          </p>
+   597→                        )}
+   598→                      </div>
+   599→                      <Button
+   600→                        variant="ghost"
+   601→                        size="icon"
+   602→                        className="h-7 w-7 text-destructive hover:text-destructive shrink-0"
+   603→                        onClick={() =>
+   604→                          deleteReport.mutate({ id: report.id, projectId })
+   605→                        }
+   606→                      >
+   607→                        <Trash2 className="h-3 w-3" />
+   608→                      </Button>
+   609→                    </div>
+   610→                  </CardContent>
+   611→                </Card>
+   612→              ))}
+   613→            </div>
+   614→          )}
+   615→        </TabsContent>
+   616→      </Tabs>
+   617→
+   618→      {/* Timeline Dialog */}
+   619→      <Dialog open={isTimelineOpen} onOpenChange={setIsTimelineOpen}>
+   620→        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+   621→          <DialogHeader>
+   622→            <DialogTitle>
+   623→              {editingTimeline ? 'Edit Timeline Entry' : 'Add Timeline Entry'}
+   624→            </DialogTitle>
+   625→          </DialogHeader>
+   626→          <div className="grid gap-4 py-4">
+   627→            <div className="space-y-2">
+   628→              <Label htmlFor="tl-name">Task Name *</Label>
+   629→              <Input
+   630→                id="tl-name"
+   631→                value={timelineForm.taskName}
+   632→                onChange={(e) => setTimelineForm({ ...timelineForm, taskName: e.target.value })}
+   633→                placeholder="Design phase"
+   634→              />
+   635→            </div>
+   636→            <div className="grid grid-cols-2 gap-4">
+   637→              <div className="space-y-2">
+   638→                <Label htmlFor="tl-start">Start Date</Label>
+   639→                <Input
+   640→                  id="tl-start"
+   641→                  type="date"
+   642→                  value={timelineForm.startDate}
+   643→                  onChange={(e) => setTimelineForm({ ...timelineForm, startDate: e.target.value })}
+   644→                />
+   645→              </div>
+   646→              <div className="space-y-2">
+   647→                <Label htmlFor="tl-end">End Date</Label>
+   648→                <Input
+   649→                  id="tl-end"
+   650→                  type="date"
+   651→                  value={timelineForm.endDate}
+   652→                  onChange={(e) => setTimelineForm({ ...timelineForm, endDate: e.target.value })}
+   653→                />
+   654→              </div>
+   655→            </div>
+   656→            <div className="grid grid-cols-2 gap-4">
+   657→              <div className="space-y-2">
+   658→                <Label>Status</Label>
+   659→                <Select
+   660→                  value={timelineForm.status}
+   661→                  onValueChange={(val) =>
+   662→                    setTimelineForm({ ...timelineForm, status: val as TimelineStatus })
+   663→                  }
+   664→                >
+   665→                  <SelectTrigger>
+   666→                    <SelectValue />
+   667→                  </SelectTrigger>
+   668→                  <SelectContent>
+   669→                    {Object.entries(TIMELINE_STATUSES).map(([key, val]) => (
+   670→                      <SelectItem key={key} value={val}>
+   671→                        {TIMELINE_STATUS_LABELS[val]}
+   672→                      </SelectItem>
+   673→                    ))}
+   674→                  </SelectContent>
+   675→                </Select>
+   676→              </div>
+   677→              <div className="space-y-2">
+   678→                <Label htmlFor="tl-progress">Progress (%)</Label>
+   679→                <Input
+   680→                  id="tl-progress"
+   681→                  type="number"
+   682→                  min="0"
+   683→                  max="100"
+   684→                  value={timelineForm.progress}
+   685→                  onChange={(e) =>
+   686→                    setTimelineForm({
+   687→                      ...timelineForm,
+   688→                      progress: Math.min(100, Math.max(0, parseInt(e.target.value) || 0)),
+   689→                    })
+   690→                  }
+   691→                />
+   692→              </div>
+   693→            </div>
+   694→            <div className="space-y-2">
+   695→              <Label htmlFor="tl-assignee">Assignee</Label>
+   696→              <Input
+   697→                id="tl-assignee"
+   698→                value={timelineForm.assignee}
+   699→                onChange={(e) => setTimelineForm({ ...timelineForm, assignee: e.target.value })}
+   700→                placeholder="John Doe"
+   701→              />
+   702→            </div>
+   703→            <div className="space-y-2">
+   704→              <Label htmlFor="tl-notes">Notes</Label>
+   705→              <Textarea
+   706→                id="tl-notes"
+   707→                value={timelineForm.notes}
+   708→                onChange={(e) => setTimelineForm({ ...timelineForm, notes: e.target.value })}
+   709→                placeholder="Additional notes..."
+   710→                rows={2}
+   711→              />
+   712→            </div>
+   713→          </div>
+   714→          <DialogFooter>
+   715→            <Button variant="outline" onClick={() => setIsTimelineOpen(false)}>
+   716→              Cancel
+   717→            </Button>
+   718→            <Button
+   719→              onClick={handleTimelineSubmit}
+   720→              disabled={!timelineForm.taskName.trim()}
+   721→              className="bg-emerald-600 hover:bg-emerald-700"
+   722→            >
+   723→              {editingTimeline ? 'Update' : 'Create'}
+   724→            </Button>
+   725→          </DialogFooter>
+   726→        </DialogContent>
+   727→      </Dialog>
+   728→
+   729→      {/* Report Dialog */}
+   730→      <Dialog open={isReportOpen} onOpenChange={setIsReportOpen}>
+   731→        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+   732→          <DialogHeader>
+   733→            <DialogTitle>Add Report</DialogTitle>
+   734→          </DialogHeader>
+   735→          <div className="grid gap-4 py-4">
+   736→            <div className="space-y-2">
+   737→              <Label htmlFor="rpt-title">Title *</Label>
+   738→              <Input
+   739→                id="rpt-title"
+   740→                value={reportForm.title}
+   741→                onChange={(e) => setReportForm({ ...reportForm, title: e.target.value })}
+   742→                placeholder="Weekly Status Report"
+   743→              />
+   744→            </div>
+   745→            <div className="grid grid-cols-2 gap-4">
+   746→              <div className="space-y-2">
+   747→                <Label>Type</Label>
+   748→                <Select
+   749→                  value={reportForm.type}
+   750→                  onValueChange={(val) =>
+   751→                    setReportForm({ ...reportForm, type: val as ReportType })
+   752→                  }
+   753→                >
+   754→                  <SelectTrigger>
+   755→                    <SelectValue />
+   756→                  </SelectTrigger>
+   757→                  <SelectContent>
+   758→                    {Object.entries(REPORT_TYPES).map(([key, val]) => (
+   759→                      <SelectItem key={key} value={val}>
+   760→                        {REPORT_TYPE_LABELS[val]}
+   761→                      </SelectItem>
+   762→                    ))}
+   763→                  </SelectContent>
+   764→                </Select>
+   765→              </div>
+   766→              <div className="space-y-2">
+   767→                <Label>Status</Label>
+   768→                <Select
+   769→                  value={reportForm.status}
+   770→                  onValueChange={(val) =>
+   771→                    setReportForm({ ...reportForm, status: val as ReportStatus })
+   772→                  }
+   773→                >
+   774→                  <SelectTrigger>
+   775→                    <SelectValue />
+   776→                  </SelectTrigger>
+   777→                  <SelectContent>
+   778→                    {Object.entries(REPORT_STATUSES).map(([key, val]) => (
+   779→                      <SelectItem key={key} value={val}>
+   780→                        {REPORT_STATUS_LABELS[val]}
+   781→                      </SelectItem>
+   782→                    ))}
+   783→                  </SelectContent>
+   784→                </Select>
+   785→              </div>
+   786→            </div>
+   787→            <div className="space-y-2">
+   788→              <Label htmlFor="rpt-content">Content</Label>
+   789→              <Textarea
+   790→                id="rpt-content"
+   791→                value={reportForm.content}
+   792→                onChange={(e) => setReportForm({ ...reportForm, content: e.target.value })}
+   793→                placeholder="Report content..."
+   794→                rows={6}
+   795→              />
+   796→            </div>
+   797→          </div>
+   798→          <DialogFooter>
+   799→            <Button variant="outline" onClick={() => setIsReportOpen(false)}>
+   800→              Cancel
+   801→            </Button>
+   802→            <Button
+   803→              onClick={handleReportSubmit}
+   804→              disabled={!reportForm.title.trim()}
+   805→              className="bg-emerald-600 hover:bg-emerald-700"
+   806→            >
+   807→              Create
+   808→            </Button>
+   809→          </DialogFooter>
+   810→        </DialogContent>
+   811→      </Dialog>
+   812→
+   813→      {/* Delete Timeline Confirmation */}
+   814→      <AlertDialog
+   815→        open={!!deleteTimelineTarget}
+   816→        onOpenChange={() => setDeleteTimelineTarget(null)}
+   817→      >
+   818→        <AlertDialogContent>
+   819→          <AlertDialogHeader>
+   820→            <AlertDialogTitle>Delete Timeline Entry</AlertDialogTitle>
+   821→            <AlertDialogDescription>
+   822→              Are you sure you want to delete &quot;{deleteTimelineTarget?.taskName}&quot;?
+   823→              This action cannot be undone.
+   824→            </AlertDialogDescription>
+   825→          </AlertDialogHeader>
+   826→          <AlertDialogFooter>
+   827→            <AlertDialogCancel>Cancel</AlertDialogCancel>
+   828→            <AlertDialogAction
+   829→              onClick={() => {
+   830→                if (deleteTimelineTarget) {
+   831→                  deleteTimeline.mutate({
+   832→                    id: deleteTimelineTarget.id,
+   833→                    projectId,
+   834→                  });
+   835→                  setDeleteTimelineTarget(null);
+   836→                }
+   837→              }}
+   838→              className="bg-destructive text-white hover:bg-destructive/90"
+   839→            >
+   840→              Delete
+   841→            </AlertDialogAction>
+   842→          </AlertDialogFooter>
+   843→        </AlertDialogContent>
+   844→      </AlertDialog>
+   845→    </motion.div>
+   846→  );
+   847→}
+   848→
+   849→// Small info card component
+   850→function InfoCard({
+   851→  icon: Icon,
+   852→  label,
+   853→  value,
+   854→}: {
+   855→  icon: React.ElementType;
+   856→  label: string;
+   857→  value: string;
+   858→}) {
+   859→  return (
+   860→    <Card>
+   861→      <CardContent className="flex items-center gap-3 p-4">
+   862→        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted">
+   863→          <Icon className="h-4 w-4 text-muted-foreground" />
+   864→        </div>
+   865→        <div>
+   866→          <p className="text-xs text-muted-foreground">{label}</p>
+   867→          <p className="text-sm font-medium">{value}</p>
+   868→        </div>
+   869→      </CardContent>
+   870→    </Card>
+   871→  );
+   872→}

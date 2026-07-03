@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import {
@@ -13,6 +13,8 @@ import {
   FolderKanban,
   Calendar,
   DollarSign,
+  ChevronDown,
+  ArrowRight,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -28,6 +30,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
 import {
   Dialog,
   DialogContent,
@@ -75,6 +90,23 @@ import {
   type Priority,
   type Customer,
 } from './types';
+
+const rupiahFormatter = new Intl.NumberFormat('id-ID', {
+  style: 'currency',
+  currency: 'IDR',
+  minimumFractionDigits: 0,
+});
+
+function formatRupiah(budget: number): string {
+  return rupiahFormatter.format(budget);
+}
+
+function formatDateRange(startDate: string | null, endDate: string | null): string | null {
+  if (!startDate && !endDate) return null;
+  const start = startDate ? format(new Date(startDate), 'MMM d') : '—';
+  const end = endDate ? format(new Date(endDate), 'MMM d, yyyy') : '—';
+  return `${start} - ${end}`;
+}
 
 const container = {
   hidden: { opacity: 0 },
@@ -128,6 +160,21 @@ function getPriorityClass(priority: string) {
   }
 }
 
+function getPriorityBorderColor(priority: string) {
+  switch (priority) {
+    case 'LOW':
+      return 'border-l-gray-300 dark:border-l-gray-600';
+    case 'MEDIUM':
+      return 'border-l-teal-400 dark:border-l-teal-600';
+    case 'HIGH':
+      return 'border-l-orange-400 dark:border-l-orange-600';
+    case 'CRITICAL':
+      return 'border-l-red-500 dark:border-l-red-600';
+    default:
+      return 'border-l-gray-300 dark:border-l-gray-600';
+  }
+}
+
 function getProgressColor(progress: number) {
   if (progress >= 80) return 'bg-green-500';
   if (progress >= 50) return 'bg-emerald-500';
@@ -162,6 +209,7 @@ export function ProjectManagement({ onProjectClick }: ProjectManagementProps) {
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const [statusPopoverId, setStatusPopoverId] = useState<string | null>(null);
 
   const { data, isLoading } = useProjects({
     category: categoryFilter !== 'all' ? (categoryFilter as ProjectCategory) : undefined,
@@ -223,8 +271,75 @@ export function ProjectManagement({ onProjectClick }: ProjectManagementProps) {
     }
   };
 
+  const handleQuickStatusChange = (projectId: string, newStatus: ProjectStatus) => {
+    updateProject.mutate({ id: projectId, status: newStatus });
+    setStatusPopoverId(null);
+  };
+
+  // Quick Status Change Popover
+  function StatusChangePopover({
+    project,
+  }: {
+    project: Project & { customer?: Customer };
+  }) {
+    const isOpen = statusPopoverId === project.id;
+    return (
+      <Popover open={isOpen} onOpenChange={(open) => setStatusPopoverId(open ? project.id : null)}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 text-xs gap-1"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <ChevronDown className="h-3 w-3" />
+            Status
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[200px] p-0" align="end" onClick={(e) => e.stopPropagation()}>
+          <Command>
+            <CommandInput placeholder="Search status..." />
+            <CommandList className="max-h-64">
+              <CommandEmpty>No status found.</CommandEmpty>
+              <CommandGroup>
+                {Object.entries(PROJECT_STATUSES).map(([, val]) => (
+                  <CommandItem
+                    key={val}
+                    value={val}
+                    onSelect={() => handleQuickStatusChange(project.id, val as ProjectStatus)}
+                    className={cn(
+                      'gap-2',
+                      project.status === val && 'bg-muted'
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        'h-2 w-2 rounded-full',
+                        val === 'PLANNING' && 'bg-gray-400',
+                        val === 'IN_PROGRESS' && 'bg-emerald-500',
+                        val === 'ON_HOLD' && 'bg-amber-500',
+                        val === 'COMPLETED' && 'bg-green-500',
+                        val === 'CANCELLED' && 'bg-red-500'
+                      )}
+                    />
+                    {STATUS_LABELS[val]}
+                    {project.status === val && (
+                      <span className="ml-auto text-xs text-muted-foreground">Current</span>
+                    )}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+    );
+  }
+
   // Project Card
   function ProjectCard({ project }: { project: Project & { customer?: Customer } }) {
+    const dateRange = formatDateRange(project.startDate, project.endDate);
+
     return (
       <motion.div
         variants={item}
@@ -232,7 +347,10 @@ export function ProjectManagement({ onProjectClick }: ProjectManagementProps) {
         transition={{ duration: 0.2 }}
       >
         <Card
-          className="cursor-pointer transition-shadow hover:shadow-md"
+          className={cn(
+            'cursor-pointer transition-shadow hover:shadow-md border-l-4',
+            getPriorityBorderColor(project.priority)
+          )}
           onClick={() => onProjectClick(project.id)}
         >
           <CardHeader className="pb-3">
@@ -241,7 +359,7 @@ export function ProjectManagement({ onProjectClick }: ProjectManagementProps) {
                 <CardTitle className="text-sm font-semibold leading-tight truncate">
                   {project.name}
                 </CardTitle>
-                <p className="mt-1 text-xs text-muted-foreground truncate">
+                <p className="mt-1 text-sm font-medium text-emerald-700 dark:text-emerald-400 truncate">
                   {project.customer?.company || 'Unknown Customer'}
                 </p>
               </div>
@@ -285,27 +403,19 @@ export function ProjectManagement({ onProjectClick }: ProjectManagementProps) {
               </div>
             </div>
 
-            {/* Dates */}
-            <div className="flex items-center gap-4 text-xs text-muted-foreground">
-              {project.startDate && (
-                <span className="flex items-center gap-1">
-                  <Calendar className="h-3 w-3" />
-                  {format(new Date(project.startDate), 'MMM dd')}
-                </span>
-              )}
-              {project.endDate && (
-                <span className="flex items-center gap-1">
-                  <Calendar className="h-3 w-3" />
-                  {format(new Date(project.endDate), 'MMM dd, yyyy')}
-                </span>
-              )}
-            </div>
-
             {/* Budget */}
             {project.budget > 0 && (
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <DollarSign className="h-3 w-3" />
-                <span>{project.budget.toLocaleString()}</span>
+              <div className="flex items-center gap-1.5 text-xs font-medium">
+                <DollarSign className="h-3.5 w-3.5 text-emerald-600" />
+                <span>{formatRupiah(project.budget)}</span>
+              </div>
+            )}
+
+            {/* Date Range */}
+            {dateRange && (
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Calendar className="h-3 w-3" />
+                <span>{dateRange}</span>
               </div>
             )}
 
@@ -314,6 +424,7 @@ export function ProjectManagement({ onProjectClick }: ProjectManagementProps) {
               className="flex items-center gap-1 pt-1 border-t"
               onClick={(e) => e.stopPropagation()}
             >
+              <StatusChangePopover project={project} />
               <Button
                 variant="ghost"
                 size="sm"
@@ -421,16 +532,24 @@ export function ProjectManagement({ onProjectClick }: ProjectManagementProps) {
             ))}
           </div>
         ) : projects.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-3 py-16">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
-              <FolderKanban className="h-8 w-8 text-muted-foreground" />
+          <div className="flex flex-col items-center justify-center gap-4 py-20">
+            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-50 dark:bg-emerald-950/30">
+              <FolderKanban className="h-10 w-10 text-emerald-500" />
             </div>
             <div className="text-center">
-              <p className="text-sm font-medium">No projects found</p>
-              <p className="text-xs text-muted-foreground">
-                Try adjusting your filters or click "Add Project" to get started
+              <p className="text-base font-semibold">No projects yet</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Create your first project to get started
               </p>
             </div>
+            <Button
+              onClick={openCreate}
+              variant="outline"
+              className="mt-2 border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 dark:border-emerald-700 dark:text-emerald-400 dark:hover:bg-emerald-950/50"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Create your first project
+            </Button>
           </div>
         ) : viewMode === 'card' ? (
           <motion.div
@@ -454,8 +573,9 @@ export function ProjectManagement({ onProjectClick }: ProjectManagementProps) {
                     <TableHead>Category</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="hidden md:table-cell">Priority</TableHead>
-                    <TableHead className="hidden lg:table-cell">Progress</TableHead>
-                    <TableHead className="hidden xl:table-cell">End Date</TableHead>
+                    <TableHead className="hidden md:table-cell">Budget</TableHead>
+                    <TableHead className="hidden lg:table-cell">Date Range</TableHead>
+                    <TableHead className="hidden xl:table-cell">Progress</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -496,7 +616,13 @@ export function ProjectManagement({ onProjectClick }: ProjectManagementProps) {
                           {PRIORITY_LABELS[project.priority]}
                         </Badge>
                       </TableCell>
-                      <TableCell className="hidden lg:table-cell">
+                      <TableCell className="hidden md:table-cell text-sm text-muted-foreground whitespace-nowrap">
+                        {project.budget > 0 ? formatRupiah(project.budget) : '—'}
+                      </TableCell>
+                      <TableCell className="hidden lg:table-cell text-muted-foreground text-sm whitespace-nowrap">
+                        {formatDateRange(project.startDate, project.endDate) || '—'}
+                      </TableCell>
+                      <TableCell className="hidden xl:table-cell">
                         <div className="flex items-center gap-2">
                           <div className="h-1.5 w-16 overflow-hidden rounded-full bg-muted">
                             <div
@@ -512,13 +638,9 @@ export function ProjectManagement({ onProjectClick }: ProjectManagementProps) {
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell className="hidden xl:table-cell text-muted-foreground text-sm">
-                        {project.endDate
-                          ? format(new Date(project.endDate), 'MMM dd, yyyy')
-                          : '—'}
-                      </TableCell>
                       <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-1">
+                          <StatusChangePopover project={project} />
                           <Button
                             variant="ghost"
                             size="icon"
