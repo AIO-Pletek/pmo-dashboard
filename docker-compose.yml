@@ -1,0 +1,24 @@
+services:
+  pmo-dashboard:
+    build: .
+    container_name: pmo-dashboard
+    ports:
+      - "6666:6666"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - CADDY_PORT=6666
+      - DATABASE_URL=file:/app/db/custom.db
+      - JWT_SECRET=${JWT_SECRET:-change-me-in-production}
+      - ALLOWED_EMAIL_DOMAINS=${ALLOWED_EMAIL_DOMAINS:-company.com}
+      - APP_URL=${APP_URL:-http://localhost:6666}
+    volumes:
+      # Persistent database
+      - pmo-db:/app/db
+      # Persistent uploads
+      - pmo-uploads:/app/public/uploads
+    restart: unless-stopped
+
+volumes:
+  pmo-db:
+  pmo-uploads:

@@ -1,0 +1,66 @@
+# Dependencies
+node_modules/
+.bun/
+
+# Next.js build output
+.next/
+out/
+
+# Database (will be recreated or copied separately)
+db/custom.db
+
+# Upload directory (use volume)
+upload/
+public/uploads/
+
+# Scripts (not needed in container)
+.zscripts/
+
+# Development
+dev.log
+server.log
+*.pid
+
+# Git
+.git/
+.gitignore
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Environment (pass via docker-compose or --env-file)
+.env
+.env.local
+.env.*.local
+
+# Documentation / screenshots
+*.md
+!README.md
+screenshot-*.png
+
+# Examples
+examples/
+
+# Agent context
+agent-ctx/
+tool-results/
+
+# Worktrees
+.claude/
+
+# Download
+download/
+
+# Skills
+skills/
+
+# Misc
+*.tar.gz
+mini-services/
