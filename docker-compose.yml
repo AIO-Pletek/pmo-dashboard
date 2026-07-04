@@ -5,14 +5,16 @@ services:
     ports:
       # Bind to localhost only — nginx reverse-proxies from port 80
       - "127.0.0.1:6666:6666"
+    env_file:
+      - .env
     environment:
       - NODE_ENV=production
       - PORT=3000
       - CADDY_PORT=6666
       - DATABASE_URL=file:/app/db/custom.db
-      - JWT_SECRET=${JWT_SECRET:-change-me-in-production}
-      - ALLOWED_EMAIL_DOMAINS=${ALLOWED_EMAIL_DOMAINS:-company.com}
-      - APP_URL=${APP_URL:-http://116.204.131.112}
+      - JWT_SECRET=pmo-dashboard-jwt-secret-change-in-production
+      - ALLOWED_EMAIL_DOMAINS=company.com,gmail.com,example.com,test.com
+      - APP_URL=http://116.204.131.112
     volumes:
       # Persistent database
       - pmo-db:/app/db
