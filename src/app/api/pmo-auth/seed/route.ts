@@ -15,11 +15,14 @@ export async function POST() {
       })
     }
 
-    const email = 'admin@company.com'
+    // Use first allowed domain for admin email, fallback to company.com
+    const domains = (process.env.ALLOWED_EMAIL_DOMAINS || 'company.com').split(',').map(d => d.trim()).filter(Boolean)
+    const adminDomain = domains[0] || 'company.com'
+    const email = `admin@${adminDomain}`
     const password = 'admin123'
 
     if (!isEmailDomainAllowed(email)) {
-      return NextResponse.json({ error: 'Email domain not allowed' }, { status: 403 })
+      return NextResponse.json({ error: `Email domain not allowed: ${adminDomain}` }, { status: 403 })
     }
 
     const hashedPassword = await hashPassword(password)
