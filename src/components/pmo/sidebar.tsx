@@ -11,6 +11,7 @@ import {
   UserCog,
   UserCircle,
   LogOut,
+  GanttChart,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
@@ -41,6 +42,7 @@ function SidebarContent({
     { view: 'projects', label: 'Projects', icon: FolderKanban },
     { view: 'divisions', label: 'Panel Divisi', icon: Building2 },
     { view: 'reports', label: 'Reports', icon: FileBarChart },
+    { view: 'timeline-builder', label: 'Timeline Builder', icon: GanttChart },
     { view: 'upload', label: 'Upload Excel', icon: UploadCloud },
   ];
 

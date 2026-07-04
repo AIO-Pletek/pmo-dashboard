@@ -345,3 +345,69 @@ Stage Summary:
 - All auth routes working at `/api/pmo-auth/*` path
 - Full auth flow verified: login → session → user management → forgot password → email logs → 2FA → logout
 - Login page renders correctly on fresh server
+
+---
+Task ID: 3
+Agent: Backend API Agent
+Task: Build Timeline Document API routes (CRUD + Excel export)
+
+Work Log:
+- Created /src/app/api/timeline-docs/route.ts (GET list, POST create)
+- Created /src/app/api/timeline-docs/[id]/route.ts (GET single, PUT update, DELETE)
+- Created /src/app/api/timeline-docs/[id]/export/route.ts (GET Excel export)
+- Excel export replicates the template format with Gantt chart, week headers, phases, tasks, totals, and notes
+- Used exceljs for Excel generation with proper styling (borders, bold, merged cells, column widths)
+- Verified with bun run lint
+
+Stage Summary:
+- All 3 API routes created and linting passes
+- Timeline documents support full CRUD + Excel export
+
+---
+Task ID: 4-5
+Agent: Main Agent
+Task: Build Timeline Builder frontend UI and integrate into dashboard
+
+Work Log:
+- Added TimelineDocument, TimelinePhaseItem, TimelineTaskItem types to types.ts
+- Added 'timeline-builder' to ViewType union
+- Added query keys: timelineDocs, timelineDoc(id) to use-pmo-data.ts
+- Added 5 hooks: useTimelineDocs, useTimelineDoc, useCreateTimelineDoc, useUpdateTimelineDoc, useDeleteTimelineDoc
+- Created /src/components/pmo/timeline-builder.tsx - Full timeline builder component with:
+  - List view with stats cards (total timelines, phases, tasks, days)
+  - Document cards showing title, lead, date, phases preview, notes
+  - Export, Edit, Duplicate, Delete actions per document
+  - Delete confirmation dialog
+  - Builder form with project info (title, lead, start date, weeks, notes)
+  - Phase/Task editor with collapsible phases, inline task editing
+  - Add/remove phases and tasks, duplicate phase support
+  - Real-time total days calculation
+  - Create and edit modes with back navigation
+- Updated sidebar.tsx: Added GanttChart icon and "Timeline Builder" nav item
+- Updated page.tsx: Added TimelineBuilder import and 'timeline-builder' case
+
+Stage Summary:
+- Complete Timeline Builder UI with list + builder form views
+- Full CRUD integration via TanStack Query hooks
+- Export button triggers Excel download via API
+- Sidebar navigation updated with new GanttChart icon
+- Lint passes clean
+
+---
+Task ID: 6
+Agent: Main Agent
+Task: Test and verify the complete Timeline Builder feature
+
+Work Log:
+- Full CRUD API test passed: Create → List → Get Single → Update → Delete
+- Excel export verified: 9879 bytes, matches template format
+- Export structure verified: 10 merged cells, 5 week headers, 16 tasks across 5 phases
+- Total row with SUM formula, Note row, Project lead displayed
+- Date columns start from Monday of project start week, 35 days across 5 weeks
+- Day-of-week letters (M,T,W,T,F,S,S) correct for all columns
+- Agent browser verification skipped due to sandbox network limitation (known issue)
+
+Stage Summary:
+- All APIs fully functional with correct responses
+- Excel export matches the uploaded template format precisely
+- Feature is complete and ready for use

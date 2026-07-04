@@ -21,6 +21,7 @@ import type {
   ApiResponse,
   PaginatedResponse,
   DeleteResponse,
+  TimelineDocument,
 } from './types';
 
 // ==========================================
@@ -57,6 +58,8 @@ export const queryKeys = {
   divisions: ['divisions'] as const,
   division: (id: string) => ['division', id] as const,
   divisionOverview: ['divisionOverview'] as const,
+  timelineDocs: ['timelineDocs'] as const,
+  timelineDoc: (id: string) => ['timelineDoc', id] as const,
 };
 
 // ==========================================
@@ -522,5 +525,85 @@ export function useDivisionOverview() {
     queryKey: queryKeys.divisionOverview,
     queryFn: () =>
       apiFetch<ApiResponse<DivisionOverview>>('/api/divisions/overview'),
+  });
+}
+
+// ==========================================
+// Timeline Documents (Builder)
+// ==========================================
+
+export function useTimelineDocs() {
+  return useQuery({
+    queryKey: queryKeys.timelineDocs,
+    queryFn: () =>
+      apiFetch<PaginatedResponse<TimelineDocument>>('/api/timeline-docs'),
+  });
+}
+
+export function useTimelineDoc(id: string) {
+  return useQuery({
+    queryKey: queryKeys.timelineDoc(id),
+    queryFn: () =>
+      apiFetch<ApiResponse<TimelineDocument>>(`/api/timeline-docs/${id}`),
+    enabled: !!id,
+  });
+}
+
+export function useCreateTimelineDoc() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: {
+      title: string;
+      projectLead: string;
+      startDate: string;
+      totalWeeks: number;
+      phases: TimelineDocument['phases'];
+      notes: string;
+    }) =>
+      apiFetch<ApiResponse<TimelineDocument>>('/api/timeline-docs', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['timelineDocs'] });
+      toast.success('Timeline berhasil dibuat');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Gagal membuat timeline');
+    },
+  });
+}
+
+export function useUpdateTimelineDoc() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...data }: Partial<TimelineDocument> & { id: string }) =>
+      apiFetch<ApiResponse<TimelineDocument>>(`/api/timeline-docs/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['timelineDocs'] });
+      queryClient.invalidateQueries({ queryKey: ['timelineDoc', variables.id] });
+      toast.success('Timeline berhasil diperbarui');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Gagal memperbarui timeline');
+    },
+  });
+}
+
+export function useDeleteTimelineDoc() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      apiFetch<DeleteResponse>(`/api/timeline-docs/${id}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['timelineDocs'] });
+      toast.success('Timeline berhasil dihapus');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Gagal menghapus timeline');
+    },
   });
 }

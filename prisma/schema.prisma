@@ -120,6 +120,18 @@ model ExcelFile {
   project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
+model TimelineDocument {
+  id          String   @id @default(cuid())
+  title       String   // Project title e.g. "Deploy Proxmox Private Cloud Timeline Yutaka Manufacturing"
+  projectLead String   @default("")
+  startDate   String   // ISO date string e.g. "2026-02-01"
+  totalWeeks  Int      @default(5)
+  phases      String   // JSON string: [{name, tasks: [{description, assignedTo, progress, days}]}]
+  notes       String   @default("")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
 model PasswordResetToken {
   id        String    @id @default(cuid())
   email     String

@@ -199,7 +199,7 @@ export interface ReportFilters {
 }
 
 // View type for SPA navigation
-export type ViewType = 'dashboard' | 'customers' | 'projects' | 'project-detail' | 'reports' | 'upload' | 'divisions' | 'users' | 'profile';
+export type ViewType = 'dashboard' | 'customers' | 'projects' | 'project-detail' | 'reports' | 'upload' | 'divisions' | 'users' | 'profile' | 'timeline-builder';
 
 // Label maps for display
 export const CATEGORY_LABELS: Record<ProjectCategory, string> = {
@@ -270,6 +270,38 @@ export interface LoginResponse {
 }
 
 export type AuthView = 'login' | 'forgot-password' | 'reset-password' | '2fa';
+
+// ==========================================
+// Timeline Document (Builder) types
+// ==========================================
+
+export interface TimelineTaskItem {
+  description: string;
+  assignedTo: string;
+  progress: number;
+  days: number;
+}
+
+export interface TimelinePhaseItem {
+  name: string;
+  tasks: TimelineTaskItem[];
+}
+
+export interface TimelineDocument {
+  id: string;
+  title: string;
+  projectLead: string;
+  startDate: string;
+  totalWeeks: number;
+  phases: TimelinePhaseItem[];
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ==========================================
+// Auth types
+// ==========================================
 
 export const USER_ROLES = {
   ADMIN: 'ADMIN',

@@ -13,6 +13,7 @@ import { ProjectDetail } from '@/components/pmo/project-detail';
 import { ReportManagement } from '@/components/pmo/report-management';
 import { ExcelUpload } from '@/components/pmo/excel-upload';
 import { DivisionPanel } from '@/components/pmo/division-panel';
+import { TimelineBuilder } from '@/components/pmo/timeline-builder';
 import { LoginPage } from '@/components/pmo/login-page';
 import { TwoFactorPage } from '@/components/pmo/two-factor-page';
 import { ForgotPasswordPage } from '@/components/pmo/forgot-password-page';
@@ -110,6 +111,8 @@ function AuthenticatedApp() {
         return <ExcelUpload />;
       case 'divisions':
         return <DivisionPanel onProjectClick={handleProjectClick} />;
+      case 'timeline-builder':
+        return <TimelineBuilder />;
       case 'users':
         return isAdmin ? <UserManagement divisions={divisions} /> : null;
       case 'profile':
