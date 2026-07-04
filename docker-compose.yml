@@ -3,10 +3,7 @@ services:
     build: .
     container_name: pmo-dashboard
     ports:
-      # Bind to localhost only — nginx reverse-proxies from port 80
       - "127.0.0.1:6666:6666"
-    env_file:
-      - .env
     environment:
       - NODE_ENV=production
       - PORT=3000
@@ -16,9 +13,7 @@ services:
       - ALLOWED_EMAIL_DOMAINS=company.com,gmail.com,example.com,test.com
       - APP_URL=http://116.204.131.112
     volumes:
-      # Persistent database
       - pmo-db:/app/db
-      # Persistent uploads
       - pmo-uploads:/app/public/uploads
     restart: unless-stopped
 
