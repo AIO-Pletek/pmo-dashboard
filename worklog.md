@@ -267,3 +267,81 @@ Stage Summary:
 - All 3 API routes fixed for Prisma _count compatibility
 - Division CRUD + PIC fields fully functional end-to-end
 - Test data created: 2 divisions (Engineering, Sales), 1 project with PIC assigned to Engineering with INTERNAL pending status
+
+---
+Task ID: 11
+Agent: full-stack-developer (Auth API)
+Task: Build authentication system API routes
+
+Work Log:
+- Created src/lib/auth.ts: JWT signing/verification (jose), bcrypt hashing, 2FA utilities (otplib v13 API with generateSecret/generateURI/verifySync), email domain validation
+- Created 11 auth API routes: login, verify-2fa, setup-2fa, enable-2fa, disable-2fa, forgot-password, reset-password, session, logout, change-password, seed
+- Created 2 user management API routes: users CRUD with GET/POST (list+create) and GET/PUT/DELETE (single user) — admin only
+- Created email-logs API route (admin only, GET with 50 record limit)
+- Seeded default admin user (admin@company.com / admin123)
+- Verified seed endpoint: idempotent (returns "Admin already exists" on second call)
+- Verified login API: returns correct JWT token, sets pmo_token cookie, includes user data
+- Verified session API: returns null when not logged in, returns user data (with division) when logged in via cookie
+- Verified users list API: admin can list users with search, proper serialization (no password/secret)
+- ESLint passes with zero errors
+
+Stage Summary:
+- Full auth system API implemented with JWT (7-day expiry), bcrypt (12 rounds), TOTP 2FA
+- Admin/user roles with division grouping
+- Forgot password flow with token generation (1-hour expiry) and email logging
+- Email domain validation for company emails (company.com, example.com, test.com)
+- 2FA flow: setup (QR code) → verify → enable/disable
+- Password change (logged in) and reset (via email token) flows
+- All auth routes use try/catch with proper Indonesian error messages
+
+---
+Task ID: 12
+Agent: full-stack-developer (Auth Frontend)
+Task: Build authentication UI components and integrate with SPA
+
+Work Log:
+- Updated types.ts: Added AuthUser, LoginResponse, AuthView, USER_ROLES, USER_ROLE_LABELS types; Extended ViewType union with 'users' and 'profile'
+- Created auth-context.tsx: AuthProvider with session check on mount (GET /api/auth/session), login (POST /api/auth/login → stores user or returns 2FA), verify2FA (POST /api/auth/verify-2fa → stores user), logout (POST /api/auth/logout → clears user). Provides isAuthenticated and isAdmin computed flags.
+- Created login-page.tsx: Centered login form with emerald gradient background, FolderKanban branding, email/password inputs with show/hide toggle (Eye/EyeOff), forgot password link, error display, loading state, framer-motion fade-in
+- Created two-factor-page.tsx: 2FA verification with centered layout, ShieldCheck icon, 6-digit numeric input (monospace, centered, tracking), auto-filter non-digits, back to login link
+- Created forgot-password-page.tsx: Email input for password reset with success state (CheckCircle2 icon), Mail branding, back to login link, loading state
+- Created reset-password-page.tsx: New password + confirm password form with 8-char minimum validation, KeyRound branding, URL token support, back to login link
+- Created user-management.tsx: Admin user CRUD with search filter, responsive table (Name, Email, Role badge, Division, 2FA icon, Status badge, Last Login, Actions), Create/Edit dialog (name, email read-only on edit, password, role select, division select), Delete AlertDialog confirmation, Toggle active action
+- Created profile-page.tsx: User profile card (initials avatar, name, email, role badge, division), 2FA section (setup with QR code + secret key + copy + verify, enable, disable with password confirmation), Change password section (current/new/confirm with show/hide toggles)
+- Updated sidebar.tsx: Added UserCog icon for "Manajemen User" (admin-only), UserCircle for "Profil Saya" (all users), bottom user info section (initials, name, email, role badge, Logout button), role-based navigation filtering, uses useAuth hook
+- Updated page.tsx: Auth flow integration with AuthProvider wrapper, AppContent gates on auth state (login → 2FA → forgot-password → reset-password), LoadingScreen with PMO branding, AuthenticatedApp component with Sidebar (isAdmin prop), routes for 'users' and 'profile' views, URL reset token detection via lazy useState initializer
+
+Stage Summary:
+- Complete auth UI flow: Login → 2FA → Dashboard (or skip 2FA)
+- Forgot password flow: Enter email → Success message → Back to login
+- Reset password flow: URL token detection → New password form → Back to login
+- User management for admins: Create/edit/delete users, assign roles and divisions
+- Profile page: 2FA setup with QR code, password change, user info display
+- Role-based navigation: Admin sees "Manajemen User", all users see "Profil Saya"
+- All auth pages use framer-motion animations, emerald gradient backgrounds, consistent card styling
+- ESLint passes with zero errors, dev server compiles successfully
+
+---
+Task ID: 13
+Agent: Main
+Task: Fix auth API route path conflict and verify auth system
+
+Work Log:
+- Identified that `/api/auth/` path conflicted with installed `next-auth` package, causing server crashes on Turbopack
+- Renamed all auth API routes from `/api/auth/` to `/api/pmo-auth/` to avoid the conflict
+- Updated all 6 frontend files that referenced `/api/auth/` paths
+- Verified all auth APIs work correctly via curl:
+  - Login: admin@company.com → JWT cookie set, user data returned
+  - Session: Returns current user from cookie
+  - Create User: user1@company.com created as USER role
+  - Forgot Password: Token generated, email logged
+  - Email Logs: Admin can view sent reset password links
+  - 2FA Setup: QR code generated
+  - Logout: Cookie cleared
+- Verified page renders login form ("PMO Dashboard" text present)
+- ESLint passes with zero errors
+
+Stage Summary:
+- All auth routes working at `/api/pmo-auth/*` path
+- Full auth flow verified: login → session → user management → forgot password → email logs → 2FA → logout
+- Login page renders correctly on fresh server

@@ -199,7 +199,7 @@ export interface ReportFilters {
 }
 
 // View type for SPA navigation
-export type ViewType = 'dashboard' | 'customers' | 'projects' | 'project-detail' | 'reports' | 'upload' | 'divisions';
+export type ViewType = 'dashboard' | 'customers' | 'projects' | 'project-detail' | 'reports' | 'upload' | 'divisions' | 'users' | 'profile';
 
 // Label maps for display
 export const CATEGORY_LABELS: Record<ProjectCategory, string> = {
@@ -246,4 +246,37 @@ export const PENDING_TYPE_LABELS: Record<PendingType, string> = {
   NONE: 'No Pending',
   INTERNAL: 'Pending Internal',
   EXTERNAL: 'Pending External',
+};
+
+// ==========================================
+// Auth types
+// ==========================================
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  name: string;
+  role: 'ADMIN' | 'USER';
+  divisionId: string | null;
+  twoFactorEnabled: boolean;
+  division?: { id: string; name: string } | null;
+}
+
+export interface LoginResponse {
+  requires2FA: boolean;
+  tempToken?: string;
+  user?: AuthUser;
+  token?: string;
+}
+
+export type AuthView = 'login' | 'forgot-password' | 'reset-password' | '2fa';
+
+export const USER_ROLES = {
+  ADMIN: 'ADMIN',
+  USER: 'USER',
+} as const;
+
+export const USER_ROLE_LABELS: Record<string, string> = {
+  ADMIN: 'Administrator',
+  USER: 'User',
 };

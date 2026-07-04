@@ -7,6 +7,36 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  name              String
+  password          String
+  role              String    @default("USER") // ADMIN, USER
+  divisionId        String?
+  twoFactorEnabled  Boolean   @default(false)
+  twoFactorSecret   String    @default("")
+  isActive          Boolean   @default(true)
+  lastLoginAt       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  division          Division? @relation(fields: [divisionId], references: [id], onDelete: SetNull)
+  passwordResetTokens PasswordResetToken[]
+  emailLogs         EmailLog[]
+}
+
+model Division {
+  id          String    @id @default(cuid())
+  name        String
+  description String    @default("")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  projects    Project[]
+  users       User[]
+}
+
 model Customer {
   id        String    @id @default(cuid())
   name      String
@@ -20,16 +50,6 @@ model Customer {
   updatedAt DateTime  @updatedAt
 
   projects  Project[]
-}
-
-model Division {
-  id          String    @id @default(cuid())
-  name        String
-  description String    @default("")
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  projects    Project[]
 }
 
 model Project {
@@ -98,4 +118,27 @@ model ExcelFile {
   uploadedAt  DateTime  @default(now())
 
   project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  email     String
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user      User?     @relation(fields: [email], references: [email], onDelete: Cascade)
+}
+
+model EmailLog {
+  id        String    @id @default(cuid())
+  to        String
+  subject   String
+  body      String
+  status    String    @default("SENT") // SENT, FAILED
+  createdAt DateTime  @default(now())
+
+  userId    String?
+  user      User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
