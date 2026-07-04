@@ -58,8 +58,16 @@ function serializeDoc(doc: {
   createdAt: Date
   updatedAt: Date
 }) {
+  let parsedPhases: TimelinePhase[] = []
+  try {
+    parsedPhases = JSON.parse(doc.phases)
+  } catch {
+    parsedPhases = []
+  }
+
   return {
     ...doc,
+    phases: parsedPhases,
     createdAt: doc.createdAt.toISOString(),
     updatedAt: doc.updatedAt.toISOString(),
   }
