@@ -12,6 +12,7 @@ import {
   CardFooter,
   CardHeader,
 } from '@/components/ui/card';
+import { useAuth } from './auth-context';
 import type { LoginResponse } from './types';
 
 interface LoginPageProps {
@@ -20,6 +21,7 @@ interface LoginPageProps {
 }
 
 export function LoginPage({ onLogin, onForgotPassword }: LoginPageProps) {
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -37,21 +39,10 @@ export function LoginPage({ onLogin, onForgotPassword }: LoginPageProps) {
 
     setIsLoading(true);
     try {
-      const res = await fetch('/api/pmo-auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.message || data.error || 'Login gagal');
-        return;
-      }
-
-      onLogin(data.data);
-    } catch {
-      setError('Terjadi kesalahan koneksi');
+      const result = await login(email, password);
+      onLogin(result);
+    } catch (err: any) {
+      setError(err.message || 'Terjadi kesalahan koneksi');
     } finally {
       setIsLoading(false);
     }
