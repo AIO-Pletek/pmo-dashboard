@@ -93,6 +93,8 @@ function getCategoryClass(category: string) {
       return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300';
     case 'POC_CUSTOMER':
       return 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300';
+    case 'INTERNAL':
+      return 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300';
     default:
       return '';
   }

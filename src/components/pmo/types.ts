@@ -6,6 +6,7 @@
 export const PROJECT_CATEGORIES = {
   ONGOING_CUSTOMER: 'ONGOING_CUSTOMER',
   POC_CUSTOMER: 'POC_CUSTOMER',
+  INTERNAL: 'INTERNAL',
 } as const;
 
 export const PROJECT_STATUSES = {
@@ -205,6 +206,7 @@ export type ViewType = 'dashboard' | 'customers' | 'projects' | 'project-detail'
 export const CATEGORY_LABELS: Record<ProjectCategory, string> = {
   ONGOING_CUSTOMER: 'On-going Customer',
   POC_CUSTOMER: 'POC Customer',
+  INTERNAL: 'Internal Project',
 };
 
 export const STATUS_LABELS: Record<ProjectStatus, string> = {

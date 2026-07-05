@@ -12,7 +12,7 @@ export async function GET() {
     })
 
     const allStatuses = ['PLANNING', 'IN_PROGRESS', 'ON_HOLD', 'COMPLETED', 'CANCELLED']
-    const allCategories = ['ONGOING_CUSTOMER', 'POC_CUSTOMER']
+    const allCategories = ['ONGOING_CUSTOMER', 'POC_CUSTOMER', 'INTERNAL']
     const allPendingTypes = ['NONE', 'INTERNAL', 'EXTERNAL']
 
     const serializeDate = (d: Date | null) =>

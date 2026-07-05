@@ -75,6 +75,7 @@ export async function GET() {
     // Ensure all categories present
     if (!projectsByCategory.ONGOING_CUSTOMER) projectsByCategory.ONGOING_CUSTOMER = 0
     if (!projectsByCategory.POC_CUSTOMER) projectsByCategory.POC_CUSTOMER = 0
+    if (!projectsByCategory.INTERNAL) projectsByCategory.INTERNAL = 0
 
     const projectsByStatus: Record<string, number> = {}
     for (const item of projectsByStatusRaw) {
