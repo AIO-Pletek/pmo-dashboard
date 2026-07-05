@@ -78,6 +78,7 @@ model Project {
   timelines             Timeline[]
   reports               Report[]
   excelFiles            ExcelFile[]
+  activityLogs          ActivityLog[]
 }
 
 model Timeline {
