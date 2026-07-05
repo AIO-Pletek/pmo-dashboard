@@ -1386,14 +1386,14 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
             <div className="space-y-2">
               <Label htmlFor="tl-assignee">Assignee</Label>
               <Select
-                value={timelineForm.assignee}
-                onValueChange={(val) => setTimelineForm({ ...timelineForm, assignee: val })}
+                value={timelineForm.assignee || '__none__'}
+                onValueChange={(val) => setTimelineForm({ ...timelineForm, assignee: val === '__none__' ? '' : val })}
               >
                 <SelectTrigger id="tl-assignee">
                   <SelectValue placeholder="Pilih user..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">— Tidak ada —</SelectItem>
+                  <SelectItem value="__none__">— Tidak ada —</SelectItem>
                   {users.filter(u => u?.name).map((u) => (
                     <SelectItem key={u.id} value={u.name}>
                       {u.name} ({u.email})

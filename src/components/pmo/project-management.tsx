@@ -901,14 +901,14 @@ export function ProjectManagement({ onProjectClick }: ProjectManagementProps) {
                 <div className="space-y-2">
                   <Label htmlFor="proj-pic-internal">PIC Internal</Label>
                   <Select
-                    value={form.picInternalName}
-                    onValueChange={(val) => setForm({ ...form, picInternalName: val })}
+                    value={form.picInternalName || '__none__'}
+                    onValueChange={(val) => setForm({ ...form, picInternalName: val === '__none__' ? '' : val })}
                   >
                     <SelectTrigger id="proj-pic-internal">
                       <SelectValue placeholder="Pilih user..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">— Tidak ada —</SelectItem>
+                      <SelectItem value="__none__">— Tidak ada —</SelectItem>
                       {users.filter(u => u?.name).map((u) => (
                         <SelectItem key={u.id} value={u.name}>
                           {u.name} ({u.email})
