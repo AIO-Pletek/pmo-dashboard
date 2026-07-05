@@ -12,6 +12,7 @@ import {
   UserCircle,
   LogOut,
   GanttChart,
+  AlertTriangle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
@@ -43,6 +44,7 @@ function SidebarContent({
     { view: 'divisions', label: 'Panel Divisi', icon: Building2 },
     { view: 'reports', label: 'Reports', icon: FileBarChart },
     { view: 'timeline-builder', label: 'Timeline Builder', icon: GanttChart },
+    { view: 'pending-drawdown', label: 'Pending Drawdown', icon: AlertTriangle },
     { view: 'upload', label: 'Upload Excel', icon: UploadCloud },
   ];
 

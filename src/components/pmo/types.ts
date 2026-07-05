@@ -212,7 +212,7 @@ export interface ReportFilters {
 }
 
 // View type for SPA navigation
-export type ViewType = 'dashboard' | 'customers' | 'projects' | 'project-detail' | 'reports' | 'upload' | 'divisions' | 'users' | 'profile' | 'timeline-builder';
+export type ViewType = 'dashboard' | 'customers' | 'projects' | 'project-detail' | 'reports' | 'upload' | 'divisions' | 'users' | 'profile' | 'timeline-builder' | 'pending-drawdown';
 
 // Label maps for display
 export const CATEGORY_LABELS: Record<ProjectCategory, string> = {
