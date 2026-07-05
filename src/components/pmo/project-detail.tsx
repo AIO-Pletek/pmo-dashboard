@@ -1394,7 +1394,7 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">— Tidak ada —</SelectItem>
-                  {users.map((u) => (
+                  {users.filter(u => u?.name).map((u) => (
                     <SelectItem key={u.id} value={u.name}>
                       {u.name} ({u.email})
                     </SelectItem>
