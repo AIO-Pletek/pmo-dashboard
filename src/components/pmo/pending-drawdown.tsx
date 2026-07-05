@@ -10,6 +10,7 @@ import {
   Clock,
   ChevronDown,
   ChevronRight,
+  Download,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -195,13 +196,24 @@ export function PendingDrawdown({
       className="space-y-6"
     >
       {/* Header */}
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight text-foreground">
-          Pending Drawdown
-        </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Breakdown pending project berdasarkan PIC dan Divisi
-        </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight text-foreground">
+            Pending Drawdown
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Breakdown pending project berdasarkan PIC dan Divisi
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-1.5"
+          onClick={() => window.open('/api/dashboard/pending-breakdown/export', '_blank')}
+        >
+          <Download className="h-4 w-4" />
+          Export Excel
+        </Button>
       </div>
 
       {/* Summary KPI */}

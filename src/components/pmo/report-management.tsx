@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
-import { Plus, FileBarChart, Pencil, Trash2, Eye, FileText, Loader2 } from 'lucide-react';
+import { Plus, FileBarChart, Pencil, Trash2, Eye, FileText, Loader2, Download } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -201,6 +201,15 @@ export function ReportManagement() {
     }
   };
 
+  const handleExport = () => {
+    const params = new URLSearchParams();
+    if (projectFilter !== 'all') params.set('projectId', projectFilter);
+    if (typeFilter !== 'all') params.set('type', typeFilter);
+    if (statusFilter !== 'all') params.set('status', statusFilter);
+    const qs = params.toString();
+    window.open(`/api/reports/export${qs ? `?${qs}` : ''}`, '_blank');
+  };
+
   return (
     <motion.div variants={container} initial="hidden" animate="show" className="space-y-6">
       {/* Header */}
@@ -210,6 +219,10 @@ export function ReportManagement() {
           <p className="text-muted-foreground">View and manage all project reports</p>
         </div>
         <div className="flex items-center gap-2">
+          <Button onClick={handleExport} variant="outline" size="sm" className="gap-1.5">
+            <Download className="h-4 w-4" />
+            Export Excel
+          </Button>
           <Button onClick={openCompile} variant="outline" className="border-emerald-300 text-emerald-700 hover:bg-emerald-50">
             <FileText className="mr-2 h-4 w-4" />
             Generate Compiled Report
