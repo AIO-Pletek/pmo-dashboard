@@ -3,13 +3,15 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
-import { Plus, FileBarChart, Pencil, Trash2, Eye } from 'lucide-react';
+import { toast } from 'sonner';
+import { Plus, FileBarChart, Pencil, Trash2, Eye, FileText, Loader2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -22,8 +24,10 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Table,
   TableBody,
@@ -34,6 +38,7 @@ import {
 } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   useReports,
   useProjects,
@@ -98,9 +103,17 @@ export function ReportManagement() {
   const createReport = useCreateReport();
   const updateReport = useUpdateReport();
   const deleteReport = useDeleteReport();
+  const queryClient = useQueryClient();
 
   const reports = data?.data || [];
   const projects = projectsData?.data || [];
+
+  // Compiled report state
+  const [isCompileOpen, setIsCompileOpen] = useState(false);
+  const [compileTitle, setCompileTitle] = useState('');
+  const [compileType, setCompileType] = useState<ReportType>('MILESTONE');
+  const [selectedProjectIds, setSelectedProjectIds] = useState<Set<string>>(new Set());
+  const [compiling, setCompiling] = useState(false);
 
   const openCreate = () => {
     setEditingReport(null);
@@ -136,6 +149,58 @@ export function ReportManagement() {
     setIsFormOpen(false);
   };
 
+  const toggleProjectSelect = (id: string) => {
+    setSelectedProjectIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedProjectIds.size === projects.length) {
+      setSelectedProjectIds(new Set());
+    } else {
+      setSelectedProjectIds(new Set(projects.map((p) => p.id)));
+    }
+  };
+
+  const openCompile = () => {
+    setCompileTitle('');
+    setCompileType('MILESTONE');
+    setSelectedProjectIds(new Set());
+    setIsCompileOpen(true);
+  };
+
+  const handleCompile = async () => {
+    if (!compileTitle.trim() || selectedProjectIds.size === 0) return;
+    setCompiling(true);
+    try {
+      const res = await fetch('/api/reports/compile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: compileTitle.trim(),
+          projectIds: Array.from(selectedProjectIds),
+          type: compileType,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || 'Failed to compile report');
+        return;
+      }
+      toast.success(`Compiled report created for ${data.data.compiledCount} projects`);
+      queryClient.invalidateQueries({ queryKey: ['reports'] });
+      setIsCompileOpen(false);
+    } catch {
+      toast.error('Connection error');
+    } finally {
+      setCompiling(false);
+    }
+  };
+
   return (
     <motion.div variants={container} initial="hidden" animate="show" className="space-y-6">
       {/* Header */}
@@ -144,10 +209,16 @@ export function ReportManagement() {
           <h2 className="text-2xl font-bold tracking-tight">Reports</h2>
           <p className="text-muted-foreground">View and manage all project reports</p>
         </div>
-        <Button onClick={openCreate} className="bg-emerald-600 hover:bg-emerald-700">
-          <Plus className="mr-2 h-4 w-4" />
-          Add Report
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={openCompile} variant="outline" className="border-emerald-300 text-emerald-700 hover:bg-emerald-50">
+            <FileText className="mr-2 h-4 w-4" />
+            Generate Compiled Report
+          </Button>
+          <Button onClick={openCreate} className="bg-emerald-600 hover:bg-emerald-700">
+            <Plus className="mr-2 h-4 w-4" />
+            Add Report
+          </Button>
+        </div>
       </motion.div>
 
       {/* Filters */}
@@ -456,6 +527,118 @@ export function ReportManagement() {
               className="bg-destructive text-white hover:bg-destructive/90"
             >
               Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Compile Report Dialog */}
+      <Dialog open={isCompileOpen} onOpenChange={setIsCompileOpen}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-emerald-600" />
+              Generate Compiled Report
+            </DialogTitle>
+            <DialogDescription>
+              Compile data from multiple projects into one comprehensive report.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4 overflow-y-auto flex-1">
+            <div className="space-y-2">
+              <Label htmlFor="compile-title">Report Title *</Label>
+              <Input
+                id="compile-title"
+                value={compileTitle}
+                onChange={(e) => setCompileTitle(e.target.value)}
+                placeholder="e.g. Monthly All Projects Report"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Report Type</Label>
+              <Select value={compileType} onValueChange={(val) => setCompileType(val as ReportType)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(REPORT_TYPES).map(([key, val]) => (
+                    <SelectItem key={key} value={val}>
+                      {REPORT_TYPE_LABELS[val]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Select Projects *</Label>
+                <button
+                  type="button"
+                  onClick={toggleSelectAll}
+                  className="text-xs text-emerald-600 hover:text-emerald-700 hover:underline"
+                >
+                  {selectedProjectIds.size === projects.length ? 'Deselect All' : 'Select All'}
+                </button>
+              </div>
+              <Card className="border">
+                <ScrollArea className="h-48">
+                  <div className="p-3 space-y-1">
+                    {projects.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-8">
+                        No projects available
+                      </p>
+                    ) : (
+                      projects.map((p) => (
+                        <label
+                          key={p.id}
+                          className={cn(
+                            'flex items-center gap-3 rounded-md px-3 py-2 cursor-pointer transition-colors',
+                            selectedProjectIds.has(p.id)
+                              ? 'bg-emerald-50 dark:bg-emerald-950/30'
+                              : 'hover:bg-muted'
+                          )}
+                        >
+                          <Checkbox
+                            checked={selectedProjectIds.has(p.id)}
+                            onCheckedChange={() => toggleProjectSelect(p.id)}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{p.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {p.customer?.name || 'No customer'} • {p.status}
+                            </p>
+                          </div>
+                        </label>
+                      ))
+                    )}
+                  </div>
+                </ScrollArea>
+              </Card>
+              <p className="text-xs text-muted-foreground">
+                {selectedProjectIds.size} project{selectedProjectIds.size !== 1 ? 's' : ''} selected
+              </p>
+            </div>
+          </div>
+          <DialogFooter className="pt-2 border-t">
+            <Button variant="outline" onClick={() => setIsCompileOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCompile}
+              disabled={!compileTitle.trim() || selectedProjectIds.size === 0 || compiling}
+              className="bg-emerald-600 hover:bg-emerald-700"
+            >
+              {compiling ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Compiling...
+                </>
+              ) : (
+                <>
+                  <FileText className="mr-2 h-4 w-4" />
+                  Generate Report
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
