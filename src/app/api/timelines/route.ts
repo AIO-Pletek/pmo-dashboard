@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { recalculateProjectProgress } from '@/lib/project-utils'
 
 export async function GET(request: NextRequest) {
   try {
@@ -75,6 +76,11 @@ export async function POST(request: NextRequest) {
 
     const serializeDate = (d: Date | null) =>
       d ? d.toISOString() : null
+
+    // Auto-recalculate project progress
+    recalculateProjectProgress(projectId).catch((e) =>
+      console.error('Failed to recalculate project progress:', e)
+    )
 
     return NextResponse.json(
       { data: {

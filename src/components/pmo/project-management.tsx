@@ -862,20 +862,14 @@ export function ProjectManagement({ onProjectClick }: ProjectManagementProps) {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="proj-progress">Progress (%)</Label>
-                <Input
-                  id="proj-progress"
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={form.progress}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      progress: Math.min(100, Math.max(0, parseInt(e.target.value) || 0)),
-                    })
-                  }
-                />
+                <Label>Progress (%)</Label>
+                <div className="flex h-9 items-center rounded-md border bg-muted/50 px-3 text-sm text-muted-foreground">
+                  {editingProject ? (
+                    <span>{form.progress}% — <span className="italic text-xs">auto-calculated from timeline tasks</span></span>
+                  ) : (
+                    <span className="italic text-xs">Auto-calculated after adding timeline tasks</span>
+                  )}
+                </div>
               </div>
             </div>
             <div className="space-y-2">

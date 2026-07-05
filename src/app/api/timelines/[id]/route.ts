@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { recalculateProjectProgress } from '@/lib/project-utils'
 
 export async function PUT(
   request: NextRequest,
@@ -40,6 +41,11 @@ export async function PUT(
     const serializeDate = (d: Date | null) =>
       d ? d.toISOString() : null
 
+    // Auto-recalculate project progress
+    recalculateProjectProgress(existing.projectId).catch((e) =>
+      console.error('Failed to recalculate project progress:', e)
+    )
+
     return NextResponse.json({ data: {
       ...timeline,
       startDate: serializeDate(timeline.startDate),
@@ -71,7 +77,13 @@ export async function DELETE(
       )
     }
 
+    const projectId = existing.projectId
     await db.timeline.delete({ where: { id } })
+
+    // Auto-recalculate project progress
+    recalculateProjectProgress(projectId).catch((e) =>
+      console.error('Failed to recalculate project progress:', e)
+    )
 
     return NextResponse.json({ success: true })
   } catch (error) {

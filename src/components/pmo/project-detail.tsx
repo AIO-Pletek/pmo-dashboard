@@ -410,6 +410,9 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
               <span className="font-semibold text-emerald-600">{project.progress}%</span>
             </div>
             <Progress value={project.progress} className={cn('h-2.5', getProgressColor(project.progress))} />
+            <p className="text-[10px] text-muted-foreground italic">
+              Auto-calculated from {project.timelines?.length || 0} timeline task{project.timelines?.length !== 1 ? 's' : ''}
+            </p>
           </div>
         </CardContent>
       </Card>
