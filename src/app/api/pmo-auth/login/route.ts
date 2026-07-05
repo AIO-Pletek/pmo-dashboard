@@ -71,9 +71,14 @@ export async function POST(request: NextRequest) {
       },
     })
 
+    // Detect HTTPS from X-Forwarded-Proto header (set by nginx/Caddy)
+    const isHttps =
+      request.headers.get('x-forwarded-proto') === 'https' ||
+      request.nextUrl.protocol === 'https'
+
     response.cookies.set('pmo_token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: isHttps,
       sameSite: 'lax',
       path: '/',
       maxAge: 7 * 24 * 60 * 60,
