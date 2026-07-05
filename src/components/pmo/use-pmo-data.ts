@@ -528,6 +528,31 @@ export function useDivisionOverview() {
   });
 }
 
+// Users list (for PIC dropdown — accessible by any authenticated user)
+export interface UserListItem {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  divisionId: string | null;
+  division: { id: string; name: string } | null;
+  isActive: boolean;
+}
+
+export function useUsers(opts?: { activeOnly?: boolean }) {
+  return useQuery({
+    queryKey: ['users', opts],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (opts?.activeOnly) params.set('activeOnly', 'true');
+      const qs = params.toString();
+      return apiFetch<PaginatedResponse<UserListItem>>(
+        `/api/users${qs ? `?${qs}` : ''}`
+      );
+    },
+  });
+}
+
 // ==========================================
 // Timeline Documents (Builder)
 // ==========================================

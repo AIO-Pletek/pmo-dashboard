@@ -5,15 +5,16 @@ import { getCurrentUser, hashPassword, isEmailDomainAllowed } from '@/lib/auth'
 // GET /api/users — List users (Admin only)
 export async function GET(request: NextRequest) {
   try {
-    const user = await getCurrentUser(request)
-    if (!user || user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Akses ditolak' }, { status: 403 })
+    const currentUser = await getCurrentUser(request)
+    if (!currentUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const { searchParams } = new URL(request.url)
     const search = searchParams.get('search') || ''
+    const activeOnly = searchParams.get('activeOnly') === 'true'
 
-    const where = search
+    const where: Record<string, unknown> = search
       ? {
           OR: [
             { name: { contains: search } },
@@ -21,6 +22,10 @@ export async function GET(request: NextRequest) {
           ],
         }
       : {}
+
+    if (activeOnly) {
+      where.isActive = true
+    }
 
     const users = await db.user.findMany({
       where,

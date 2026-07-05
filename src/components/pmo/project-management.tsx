@@ -79,6 +79,7 @@ import {
   useUpdateProject,
   useDeleteProject,
   useDivisions,
+  useUsers,
 } from './use-pmo-data';
 import {
   STATUS_LABELS,
@@ -241,6 +242,7 @@ export function ProjectManagement({ onProjectClick }: ProjectManagementProps) {
   });
   const { data: customersData } = useCustomers();
   const { data: divisionsData } = useDivisions();
+  const { data: usersData } = useUsers({ activeOnly: true });
   const createProject = useCreateProject();
   const updateProject = useUpdateProject();
   const deleteProject = useDeleteProject();
@@ -248,6 +250,7 @@ export function ProjectManagement({ onProjectClick }: ProjectManagementProps) {
   const projects = data?.data || [];
   const customers = customersData?.data || [];
   const divisions = divisionsData?.data || [];
+  const users = usersData?.data || [];
 
   const openCreate = () => {
     setEditingProject(null);
@@ -902,13 +905,23 @@ export function ProjectManagement({ onProjectClick }: ProjectManagementProps) {
               <Separator className="mb-4" />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="proj-pic-internal">PIC Internal (Nama)</Label>
-                  <Input
-                    id="proj-pic-internal"
+                  <Label htmlFor="proj-pic-internal">PIC Internal</Label>
+                  <Select
                     value={form.picInternalName}
-                    onChange={(e) => setForm({ ...form, picInternalName: e.target.value })}
-                    placeholder="Nama PIC internal"
-                  />
+                    onValueChange={(val) => setForm({ ...form, picInternalName: val })}
+                  >
+                    <SelectTrigger id="proj-pic-internal">
+                      <SelectValue placeholder="Pilih user..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">— Tidak ada —</SelectItem>
+                      {users.map((u) => (
+                        <SelectItem key={u.id} value={u.name}>
+                          {u.name} ({u.email})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="proj-division">Divisi Internal</Label>
