@@ -31,6 +31,7 @@ import {
   BarChart3,
   Timer,
   ListTree,
+  History,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -77,6 +78,7 @@ import {
   useDeleteReport,
   useReports,
   useUpdateProject,
+  useActivityLog,
 } from './use-pmo-data';
 import {
   STATUS_LABELS,
@@ -223,6 +225,12 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
   const { data: projectData, isLoading } = useProject(projectId);
   const { data: timelinesData } = useTimelines(projectId);
   const { data: reportsData } = useReports({ projectId });
+  const { data: activityData } = useActivityLog(projectId);
+
+  const project = projectData?.data;
+  const timelines = timelinesData?.data || [];
+  const reports = reportsData?.data || [];
+  const activities = activityData?.data || [];
 
   const createTimeline = useCreateTimeline();
   const updateTimeline = useUpdateTimeline();
@@ -230,10 +238,6 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
   const createReport = useCreateReport();
   const deleteReport = useDeleteReport();
   const updateProject = useUpdateProject();
-
-  const project = projectData?.data;
-  const timelines = timelinesData?.data || [];
-  const reports = reportsData?.data || [];
 
   // Computed values
   const totalDays =
@@ -710,6 +714,54 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
                     </p>
                   </div>
                 </>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Activity Log */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <History className="h-3.5 w-3.5" />
+                Activity Log
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {activities.length === 0 ? (
+                <p className="text-sm text-muted-foreground italic">
+                  No activity recorded yet. Activities will appear here when changes are made to this project.
+                </p>
+              ) : (
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {activities.slice(0, 20).map((log) => (
+                    <div
+                      key={log.id}
+                      className="flex items-start gap-3 rounded-md border bg-muted/30 px-3 py-2 text-sm"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className={cn(
+                            'text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded',
+                            log.action === 'CREATE' && 'bg-emerald-100 text-emerald-700',
+                            log.action === 'UPDATE' && 'bg-blue-100 text-blue-700',
+                            log.action === 'DELETE' && 'bg-red-100 text-red-700',
+                            log.action === 'VIEW' && 'bg-gray-100 text-gray-600'
+                          )}>
+                            {log.action}
+                          </span>
+                          <span className="text-xs text-muted-foreground capitalize">{log.entity}</span>
+                          <span className="font-medium truncate">{log.entityName}</span>
+                        </div>
+                        {log.details && (
+                          <p className="text-xs text-muted-foreground mt-0.5">{log.details}</p>
+                        )}
+                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                          {format(new Date(log.createdAt), 'MMM dd, yyyy HH:mm')} by {log.userName}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
             </CardContent>
           </Card>

@@ -161,6 +161,18 @@ export interface DivisionOverview {
   };
 }
 
+export interface ActivityLogEntry {
+  id: string;
+  projectId: string;
+  userId: string;
+  userName: string;
+  action: 'CREATE' | 'UPDATE' | 'DELETE' | 'VIEW';
+  entity: 'project' | 'timeline' | 'report' | 'excel';
+  entityName: string;
+  details: string;
+  createdAt: string;
+}
+
 // Dashboard types
 export interface DashboardData {
   totalCustomers: number;

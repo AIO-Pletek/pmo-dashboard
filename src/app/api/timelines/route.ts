@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { recalculateProjectProgress } from '@/lib/project-utils'
+import { getCurrentUser } from '@/lib/auth'
+import { logActivity } from '@/lib/activity-log'
 
 export async function GET(request: NextRequest) {
   try {
@@ -81,6 +83,17 @@ export async function POST(request: NextRequest) {
     recalculateProjectProgress(projectId).catch((e) =>
       console.error('Failed to recalculate project progress:', e)
     )
+
+    // Log activity
+    const user = await getCurrentUser(request)
+    logActivity({
+      projectId,
+      userId: user?.userId || 'system',
+      userName: user?.name || 'System',
+      action: 'CREATE',
+      entity: 'timeline',
+      entityName: taskName,
+    }).catch((e) => console.error('Failed to log activity:', e))
 
     return NextResponse.json(
       { data: {

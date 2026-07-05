@@ -553,6 +553,18 @@ export function useUsers(opts?: { activeOnly?: boolean }) {
   });
 }
 
+// Activity Log
+export function useActivityLog(projectId: string) {
+  return useQuery({
+    queryKey: ['activityLog', projectId],
+    queryFn: () =>
+      apiFetch<PaginatedResponse<import('./types').ActivityLogEntry>>(
+        `/api/projects/${projectId}/activity`
+      ),
+    enabled: !!projectId,
+  });
+}
+
 // ==========================================
 // Timeline Documents (Builder)
 // ==========================================

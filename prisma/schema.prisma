@@ -154,3 +154,17 @@ model EmailLog {
   userId    String?
   user      User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
+
+model ActivityLog {
+  id         String   @id @default(cuid())
+  projectId  String
+  userId     String
+  userName   String
+  action     String   // CREATE, UPDATE, DELETE, VIEW
+  entity     String   // project, timeline, report, excel
+  entityName String   // name of the entity (e.g. task name, report title)
+  details    String   @default("")
+  createdAt  DateTime @default(now())
+
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
