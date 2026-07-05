@@ -282,7 +282,9 @@ export function ProjectManagement({ onProjectClick }: ProjectManagementProps) {
   };
 
   const handleSubmit = () => {
-    if (!form.name.trim() || !form.customerId) return;
+    // CustomerId only required for non-INTERNAL projects
+    if (!form.name.trim()) return;
+    if (form.category !== 'INTERNAL' && !form.customerId) return;
 
     const payload = {
       ...form,
@@ -752,7 +754,9 @@ export function ProjectManagement({ onProjectClick }: ProjectManagementProps) {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="proj-customer">Customer *</Label>
+                <Label htmlFor="proj-customer">
+                  Customer {form.category !== 'INTERNAL' ? '*' : <span className="text-muted-foreground text-xs font-normal">(optional for Internal)</span>}
+                </Label>
                 <Select
                   value={form.customerId}
                   onValueChange={(val) => setForm({ ...form, customerId: val })}

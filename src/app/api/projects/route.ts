@@ -70,9 +70,17 @@ export async function POST(request: NextRequest) {
       pendingNote,
     } = body
 
-    if (!name || !customerId || !category) {
+    if (!name || !category) {
       return NextResponse.json(
-        { error: 'Name, customerId, and category are required' },
+        { error: 'Name and category are required' },
+        { status: 400 }
+      )
+    }
+
+    // customerId is required for non-INTERNAL projects
+    if (category !== 'INTERNAL' && !customerId) {
+      return NextResponse.json(
+        { error: 'customerId is required for non-INTERNAL projects' },
         { status: 400 }
       )
     }
@@ -85,14 +93,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const customerExists = await db.customer.findUnique({
-      where: { id: customerId },
-    })
-    if (!customerExists) {
-      return NextResponse.json(
-        { error: 'Customer not found' },
-        { status: 400 }
-      )
+    // Validate customer if provided
+    if (customerId) {
+      const customerExists = await db.customer.findUnique({
+        where: { id: customerId },
+      })
+      if (!customerExists) {
+        return NextResponse.json(
+          { error: 'Customer not found' },
+          { status: 400 }
+        )
+      }
     }
 
     if (picInternalDivisionId) {
