@@ -79,6 +79,7 @@ import {
   useReports,
   useUpdateProject,
   useActivityLog,
+  useUsers,
 } from './use-pmo-data';
 import {
   STATUS_LABELS,
@@ -226,11 +227,13 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
   const { data: timelinesData } = useTimelines(projectId);
   const { data: reportsData } = useReports({ projectId });
   const { data: activityData } = useActivityLog(projectId);
+  const { data: usersData } = useUsers({ activeOnly: true });
 
   const project = projectData?.data;
   const timelines = timelinesData?.data || [];
   const reports = reportsData?.data || [];
   const activities = activityData?.data || [];
+  const users = usersData?.data || [];
 
   const createTimeline = useCreateTimeline();
   const updateTimeline = useUpdateTimeline();
@@ -1070,6 +1073,74 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
                 })}
             </div>
           )}
+
+          {/* Drawdown by Assignee */}
+          {timelines.length > 0 && (
+            <>
+              <Separator className="my-4" />
+              <div>
+                <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  Drawdown by Assignee
+                </h3>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {(() => {
+                    // Group timelines by assignee
+                    const grouped: Record<string, typeof timelines> = {}
+                    for (const tl of timelines) {
+                      const key = tl.assignee || 'Unassigned'
+                      if (!grouped[key]) grouped[key] = []
+                      grouped[key].push(tl)
+                    }
+                    return Object.entries(grouped).map(([assignee, tasks]) => {
+                      const completed = tasks.filter(t => t.status === 'COMPLETED').length
+                      const avgProgress = Math.round(tasks.reduce((s, t) => s + t.progress, 0) / tasks.length)
+                      return (
+                        <Card key={assignee} className="overflow-hidden">
+                          <CardHeader className="pb-2 bg-muted/30">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-950">
+                                  <User className="h-3.5 w-3.5 text-blue-600" />
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="text-sm font-medium truncate">{assignee}</p>
+                                  <p className="text-[10px] text-muted-foreground">
+                                    {tasks.length} task • {completed} completed • {avgProgress}% avg
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-emerald-200 bg-emerald-50 text-xs font-bold text-emerald-700">
+                                {avgProgress}%
+                              </div>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="p-2">
+                            <div className="space-y-1 max-h-32 overflow-y-auto">
+                              {tasks.map((t) => (
+                                <div key={t.id} className="flex items-center gap-2 rounded px-2 py-1 text-xs hover:bg-muted/50">
+                                  <span className={cn(
+                                    'w-1.5 h-1.5 rounded-full shrink-0',
+                                    t.status === 'COMPLETED' ? 'bg-green-500' :
+                                    t.status === 'IN_PROGRESS' ? 'bg-emerald-500' :
+                                    t.status === 'DELAYED' ? 'bg-red-500' : 'bg-gray-300'
+                                  )} />
+                                  <span className={cn('flex-1 truncate', t.status === 'COMPLETED' && 'line-through')}>
+                                    {t.taskName}
+                                  </span>
+                                  <span className="text-[10px] text-muted-foreground shrink-0">{t.progress}%</span>
+                                </div>
+                              ))}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )
+                    })
+                  })()}
+                </div>
+              </div>
+            </>
+          )}
         </TabsContent>
 
         {/* ==========================================
@@ -1314,12 +1385,22 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
             </div>
             <div className="space-y-2">
               <Label htmlFor="tl-assignee">Assignee</Label>
-              <Input
-                id="tl-assignee"
+              <Select
                 value={timelineForm.assignee}
-                onChange={(e) => setTimelineForm({ ...timelineForm, assignee: e.target.value })}
-                placeholder="John Doe"
-              />
+                onValueChange={(val) => setTimelineForm({ ...timelineForm, assignee: val })}
+              >
+                <SelectTrigger id="tl-assignee">
+                  <SelectValue placeholder="Pilih user..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">— Tidak ada —</SelectItem>
+                  {users.map((u) => (
+                    <SelectItem key={u.id} value={u.name}>
+                      {u.name} ({u.email})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="tl-notes">Notes</Label>
