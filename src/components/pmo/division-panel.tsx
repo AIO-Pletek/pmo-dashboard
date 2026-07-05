@@ -122,7 +122,7 @@ interface DivisionPanelProps {
 // ==========================================
 
 function StatusMiniBar({ byStatus }: { byStatus: Record<string, number> }) {
-  const entries = Object.entries(byStatus).filter(([, v]) => v > 0);
+  const entries = Object.entries(byStatus || {}).filter(([, v]) => v > 0);
   const total = entries.reduce((sum, [, v]) => sum + v, 0);
   if (total === 0) return null;
 
@@ -336,7 +336,7 @@ export function DivisionPanel({ onProjectClick }: DivisionPanelProps) {
 
             {/* Status legend */}
             <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-muted-foreground">
-              {Object.entries(division.projectsByStatus).map(([status, count]) =>
+              {Object.entries(division.projectsByStatus || {}).map(([status, count]) =>
                 count > 0 ? (
                   <span key={status} className="flex items-center gap-1">
                     <span className={cn('inline-block h-2 w-2 rounded-full', getStatusColor(status))} />

@@ -1112,7 +1112,7 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
                           {REPORT_STATUS_LABELS[report.status]}
                         </Badge>
                         <span className="text-[11px] text-muted-foreground">
-                          {format(new Date(report.createdAt), 'MMM dd, yyyy')}
+                          {report.createdAt ? format(new Date(report.createdAt), 'MMM dd, yyyy') : '—'}
                         </span>
                       </div>
                       {report.content && (
@@ -1157,7 +1157,7 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
                       </Badge>
                       <div className="flex items-center justify-end gap-1">
                         <span className="text-[10px] text-muted-foreground mr-1 hidden lg:inline">
-                          {format(new Date(report.createdAt), 'MMM dd')}
+                          {report.createdAt ? format(new Date(report.createdAt), 'MMM dd') : '—'}
                         </span>
                         <Button
                           variant="ghost"

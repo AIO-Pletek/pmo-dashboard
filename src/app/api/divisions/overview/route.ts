@@ -64,6 +64,8 @@ export async function GET() {
           id: division.id,
           name: division.name,
           description: division.description,
+          createdAt: division.createdAt.toISOString(),
+          updatedAt: division.updatedAt.toISOString(),
           totalProjects: projects.length,
           projectsByStatus,
           projectsByCategory,

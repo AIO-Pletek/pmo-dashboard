@@ -252,7 +252,7 @@ export function ReportManagement() {
                         </Badge>
                       </TableCell>
                       <TableCell className="hidden md:table-cell text-muted-foreground text-sm">
-                        {format(new Date(report.createdAt), 'MMM dd, yyyy')}
+                        {report.createdAt ? format(new Date(report.createdAt), 'MMM dd, yyyy') : '—'}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
@@ -308,7 +308,7 @@ export function ReportManagement() {
                   {REPORT_STATUS_LABELS[viewReport.status]}
                 </Badge>
                 <span className="text-xs text-muted-foreground">
-                  {format(new Date(viewReport.createdAt), 'MMM dd, yyyy')}
+                  {viewReport.createdAt ? format(new Date(viewReport.createdAt), 'MMM dd, yyyy') : '—'}
                 </span>
               </div>
               {viewReport.project && (

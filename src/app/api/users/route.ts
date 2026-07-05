@@ -39,6 +39,7 @@ export async function GET(request: NextRequest) {
       lastLoginAt: u.lastLoginAt?.toISOString() || null,
       division: u.division ? { id: u.division.id, name: u.division.name } : null,
       createdAt: u.createdAt.toISOString(),
+      updatedAt: u.updatedAt.toISOString(),
     }))
 
     return NextResponse.json({ data: safeUsers, total: safeUsers.length })

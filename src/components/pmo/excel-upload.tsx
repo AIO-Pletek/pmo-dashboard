@@ -381,7 +381,7 @@ export function ExcelUpload() {
                     <div className="min-w-0">
                       <p className="text-sm font-medium truncate">{file.fileName}</p>
                       <p className="text-xs text-muted-foreground">
-                        Uploaded {format(new Date(file.uploadedAt), 'MMM dd, yyyy HH:mm')}
+                        Uploaded {file.uploadedAt ? format(new Date(file.uploadedAt), 'MMM dd, yyyy HH:mm') : '—'}
                       </p>
                     </div>
                   </div>
