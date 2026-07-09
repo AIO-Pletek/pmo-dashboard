@@ -32,6 +32,8 @@ import {
   Timer,
   ListTree,
   History,
+  Paperclip,
+  Download,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -80,6 +82,9 @@ import {
   useUpdateProject,
   useActivityLog,
   useUsers,
+  useProjectFiles,
+  useUploadProjectFile,
+  useDeleteProjectFile,
 } from './use-pmo-data';
 import {
   STATUS_LABELS,
@@ -228,12 +233,16 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
   const { data: reportsData } = useReports({ projectId });
   const { data: activityData } = useActivityLog(projectId);
   const { data: usersData } = useUsers({ activeOnly: true });
+  const { data: filesData } = useProjectFiles(projectId);
+  const uploadFile = useUploadProjectFile();
+  const deleteFile = useDeleteProjectFile();
 
   const project = projectData?.data;
   const timelines = timelinesData?.data || [];
   const reports = reportsData?.data || [];
   const activities = activityData?.data || [];
   const users = usersData?.data || [];
+  const files = filesData?.data || [];
 
   const createTimeline = useCreateTimeline();
   const updateTimeline = useUpdateTimeline();
@@ -729,6 +738,79 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
                     </p>
                   </div>
                 </>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Attached Files */}
+          <Card>
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <Paperclip className="h-3.5 w-3.5" />
+                  Attached Files ({files.length})
+                </CardTitle>
+                <label className="cursor-pointer">
+                  <input
+                    type="file"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) {
+                        uploadFile.mutate({ projectId, file })
+                        e.target.value = ''
+                      }
+                    }}
+                  />
+                  <span className="inline-flex items-center gap-1 rounded-md bg-emerald-600 px-2.5 py-1 text-[11px] font-medium text-white hover:bg-emerald-700 transition-colors">
+                    <Paperclip className="h-3 w-3" />
+                    Attach
+                  </span>
+                </label>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {files.length === 0 ? (
+                <p className="text-sm text-muted-foreground italic">
+                  No files attached. Click &quot;Attach&quot; to upload a file.
+                </p>
+              ) : (
+                <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                  {files.map((f) => (
+                    <div
+                      key={f.id}
+                      className="flex items-center justify-between rounded-md border bg-muted/30 px-3 py-2 text-sm"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Paperclip className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        <span className="truncate text-sm">{f.fileName}</span>
+                        <span className="text-[10px] text-muted-foreground shrink-0">
+                          {format(new Date(f.uploadedAt), 'MMM dd, HH:mm')}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0 ml-2">
+                        <a
+                          href={f.filePath}
+                          download={f.fileName}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex h-7 w-7 items-center justify-center rounded text-muted-foreground hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
+                        >
+                          <Download className="h-3.5 w-3.5" />
+                        </a>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                          onClick={() => deleteFile.mutate({ projectId, fileId: f.id })}
+                          disabled={deleteFile.isPending}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
             </CardContent>
           </Card>

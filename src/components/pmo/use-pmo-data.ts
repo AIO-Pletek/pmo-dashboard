@@ -443,6 +443,61 @@ export function useDeleteExcelFile() {
   });
 }
 
+// Project File Attachments (any file type)
+export function useProjectFiles(projectId: string) {
+  return useQuery({
+    queryKey: ['projectFiles', projectId],
+    queryFn: () =>
+      apiFetch<PaginatedResponse<import('./types').ExcelFile>>(
+        `/api/projects/${projectId}/files`
+      ),
+    enabled: !!projectId,
+  });
+}
+
+export function useUploadProjectFile() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ projectId, file }: { projectId: string; file: File }) => {
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await fetch(`/api/projects/${projectId}/files`, {
+        method: 'POST',
+        body: formData,
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Upload failed' }))
+        throw new Error(err.error || 'Upload failed')
+      }
+      return res.json()
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['projectFiles', variables.projectId] })
+      toast.success('File berhasil diupload')
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Gagal upload file')
+    },
+  });
+}
+
+export function useDeleteProjectFile() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ projectId, fileId }: { projectId: string; fileId: string }) =>
+      apiFetch<DeleteResponse>(`/api/projects/${projectId}/files/${fileId}`, {
+        method: 'DELETE',
+      }),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['projectFiles', variables.projectId] })
+      toast.success('File berhasil dihapus')
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Gagal menghapus file')
+    },
+  });
+}
+
 // ==========================================
 // Divisions
 // ==========================================

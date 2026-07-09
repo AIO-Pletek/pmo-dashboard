@@ -16,6 +16,7 @@ import {
   ChevronDown,
   ArrowRight,
   User,
+  Paperclip,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -80,6 +81,7 @@ import {
   useDeleteProject,
   useDivisions,
   useUsers,
+  useUploadProjectFile,
 } from './use-pmo-data';
 import {
   STATUS_LABELS,
@@ -248,6 +250,7 @@ export function ProjectManagement({ onProjectClick }: ProjectManagementProps) {
   const createProject = useCreateProject();
   const updateProject = useUpdateProject();
   const deleteProject = useDeleteProject();
+  const uploadFile = useUploadProjectFile();
 
   const projects = data?.data || [];
   const customers = customersData?.data || [];
@@ -509,6 +512,23 @@ export function ProjectManagement({ onProjectClick }: ProjectManagementProps) {
                 <Pencil className="mr-1 h-3 w-3" />
                 Edit
               </Button>
+              <label className="cursor-pointer">
+                <input
+                  type="file"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (file) {
+                      uploadFile.mutate({ projectId: project.id, file })
+                      e.target.value = ''
+                    }
+                  }}
+                />
+                <span className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-muted-foreground hover:text-emerald-600 hover:bg-emerald-50 transition-colors">
+                  <Paperclip className="h-3 w-3" />
+                  Attach
+                </span>
+              </label>
               <Button
                 variant="ghost"
                 size="sm"
