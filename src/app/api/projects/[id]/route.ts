@@ -13,6 +13,7 @@ export async function GET(
       include: {
         customer: true,
         picInternalDivision: true,
+        picInternalDivision2: true,
         timelines: { orderBy: { taskOrder: 'asc' } },
         reports: { orderBy: { createdAt: 'desc' } },
         excelFiles: { orderBy: { uploadedAt: 'desc' } },
@@ -105,6 +106,8 @@ export async function PUT(
       notes,
       picInternalName,
       picInternalDivisionId,
+      picInternalName2,
+      picInternalDivisionId2,
       picExternalName,
       pendingType,
       pendingNote,
@@ -140,6 +143,24 @@ export async function PUT(
       }
     }
 
+    let resolvedDivisionId2: string | null | undefined
+    if (picInternalDivisionId2 !== undefined) {
+      if (picInternalDivisionId2 === '') {
+        resolvedDivisionId2 = null
+      } else {
+        const divisionExists = await db.division.findUnique({
+          where: { id: picInternalDivisionId2 },
+        })
+        if (!divisionExists) {
+          return NextResponse.json(
+            { error: 'Division 2 not found' },
+            { status: 400 }
+          )
+        }
+        resolvedDivisionId2 = picInternalDivisionId2
+      }
+    }
+
     const project = await db.project.update({
       where: { id },
       data: {
@@ -160,6 +181,8 @@ export async function PUT(
         ...(notes !== undefined && { notes }),
         ...(picInternalName !== undefined && { picInternalName }),
         ...(resolvedDivisionId !== undefined && { picInternalDivisionId: resolvedDivisionId }),
+        ...(picInternalName2 !== undefined && { picInternalName2 }),
+        ...(resolvedDivisionId2 !== undefined && { picInternalDivisionId2: resolvedDivisionId2 }),
         ...(picExternalName !== undefined && { picExternalName }),
         ...(pendingType !== undefined && { pendingType }),
         ...(pendingNote !== undefined && { pendingNote }),

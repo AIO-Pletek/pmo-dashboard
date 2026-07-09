@@ -88,6 +88,8 @@ export interface Project {
   notes: string;
   picInternalName: string;
   picInternalDivisionId: string | null;
+  picInternalName2: string;
+  picInternalDivisionId2: string | null;
   picExternalName: string;
   pendingType: PendingType;
   pendingNote: string;
@@ -95,6 +97,7 @@ export interface Project {
   updatedAt: string;
   customer?: Customer;
   picInternalDivision?: Division | null;
+  picInternalDivision2?: Division | null;
 }
 
 export interface Timeline {

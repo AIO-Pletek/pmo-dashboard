@@ -217,6 +217,8 @@ const emptyForm = {
   notes: '',
   picInternalName: '',
   picInternalDivisionId: '' as string,
+  picInternalName2: '',
+  picInternalDivisionId2: '' as string,
   picExternalName: '',
   pendingType: 'NONE' as PendingType,
   pendingNote: '',
@@ -274,6 +276,8 @@ export function ProjectManagement({ onProjectClick }: ProjectManagementProps) {
       notes: project.notes,
       picInternalName: project.picInternalName || '',
       picInternalDivisionId: project.picInternalDivisionId || '',
+      picInternalName2: project.picInternalName2 || '',
+      picInternalDivisionId2: project.picInternalDivisionId2 || '',
       picExternalName: project.picExternalName || '',
       pendingType: project.pendingType || 'NONE',
       pendingNote: project.pendingNote || '',
@@ -464,6 +468,17 @@ export function ProjectManagement({ onProjectClick }: ProjectManagementProps) {
                   PIC: {project.picInternalName}
                   {project.picInternalDivision?.name && (
                     <span className="text-emerald-600 dark:text-emerald-400"> ({project.picInternalDivision.name})</span>
+                  )}
+                </span>
+              </div>
+            )}
+            {project.picInternalName2 && (
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <User className="h-3 w-3" />
+                <span>
+                  PIC 2: {project.picInternalName2}
+                  {project.picInternalDivision2?.name && (
+                    <span className="text-emerald-600 dark:text-emerald-400"> ({project.picInternalDivision2.name})</span>
                   )}
                 </span>
               </div>
@@ -938,6 +953,46 @@ export function ProjectManagement({ onProjectClick }: ProjectManagementProps) {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+                {/* PIC 2 */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="proj-pic-internal2">PIC Internal 2 <span className="text-muted-foreground text-xs font-normal">(optional)</span></Label>
+                    <Select
+                      value={form.picInternalName2 || '__none__'}
+                      onValueChange={(val) => setForm({ ...form, picInternalName2: val === '__none__' ? '' : val })}
+                    >
+                      <SelectTrigger id="proj-pic-internal2">
+                        <SelectValue placeholder="Pilih user..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">— Tidak ada —</SelectItem>
+                        {users.filter(u => u?.name).map((u) => (
+                          <SelectItem key={u.id} value={u.name}>
+                            {u.name} ({u.email})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="proj-division2">Divisi PIC 2</Label>
+                    <Select
+                      value={form.picInternalDivisionId2}
+                      onValueChange={(val) => setForm({ ...form, picInternalDivisionId2: val })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Pilih divisi..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {divisions.map((d) => (
+                          <SelectItem key={d.id} value={d.id}>
+                            {d.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="proj-pic-external">PIC Eksternal / Customer</Label>

@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     const projects = await db.project.findMany({
       where,
       orderBy: { createdAt: 'desc' },
-      include: { customer: true },
+      include: { customer: true, picInternalDivision: true, picInternalDivision2: true },
     })
 
     const total = await db.project.count({ where })
@@ -65,6 +65,8 @@ export async function POST(request: NextRequest) {
       notes,
       picInternalName,
       picInternalDivisionId,
+      picInternalName2,
+      picInternalDivisionId2,
       picExternalName,
       pendingType,
       pendingNote,
@@ -118,6 +120,18 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    if (picInternalDivisionId2) {
+      const divisionExists = await db.division.findUnique({
+        where: { id: picInternalDivisionId2 },
+      })
+      if (!divisionExists) {
+        return NextResponse.json(
+          { error: 'Division 2 not found' },
+          { status: 400 }
+        )
+      }
+    }
+
     const project = await db.project.create({
       data: {
         name,
@@ -132,6 +146,8 @@ export async function POST(request: NextRequest) {
         notes: notes || '',
         picInternalName: picInternalName || '',
         picInternalDivisionId: picInternalDivisionId || null,
+        picInternalName2: picInternalName2 || '',
+        picInternalDivisionId2: picInternalDivisionId2 || null,
         picExternalName: picExternalName || '',
         pendingType: pendingType || 'NONE',
         pendingNote: pendingNote || '',

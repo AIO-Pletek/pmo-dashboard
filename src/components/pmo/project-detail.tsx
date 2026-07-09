@@ -687,6 +687,18 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
               </div>
               <Separator />
               <div className="space-y-1">
+                <span className="text-xs text-muted-foreground">Internal PIC 2</span>
+                <p className="text-sm font-medium">
+                  {project.picInternalName2 || '—'}
+                  {project.picInternalName2 && project.picInternalDivision2 && (
+                    <span className="text-emerald-600 dark:text-emerald-400 font-normal ml-1.5">
+                      ({project.picInternalDivision2.name})
+                    </span>
+                  )}
+                </p>
+              </div>
+              <Separator />
+              <div className="space-y-1">
                 <span className="text-xs text-muted-foreground">External PIC</span>
                 <p className="text-sm font-medium">{project.picExternalName || '—'}</p>
               </div>

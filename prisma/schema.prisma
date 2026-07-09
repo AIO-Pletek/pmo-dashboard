@@ -67,6 +67,8 @@ model Project {
   notes                 String    @default("")
   picInternalName       String    @default("")
   picInternalDivisionId String?
+  picInternalName2      String    @default("")
+  picInternalDivisionId2 String?
   picExternalName       String    @default("")
   pendingType           String    @default("NONE") // NONE, INTERNAL, EXTERNAL
   pendingNote           String    @default("")
@@ -74,7 +76,8 @@ model Project {
   updatedAt             DateTime  @updatedAt
 
   customer              Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  picInternalDivision   Division? @relation(fields: [picInternalDivisionId], references: [id], onDelete: SetNull)
+  picInternalDivision   Division? @relation("ProjectPicDivision1", fields: [picInternalDivisionId], references: [id], onDelete: SetNull)
+  picInternalDivision2  Division? @relation("ProjectPicDivision2", fields: [picInternalDivisionId2], references: [id], onDelete: SetNull)
   timelines             Timeline[]
   reports               Report[]
   excelFiles            ExcelFile[]
