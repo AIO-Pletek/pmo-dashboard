@@ -399,6 +399,7 @@ export function ProjectManagement({ onProjectClick }: ProjectManagementProps) {
   // Project Card
   function ProjectCard({ project }: { project: Project & { customer?: Customer } }) {
     const dateRange = formatDateRange(project.startDate, project.endDate);
+    const hasPic = project.picInternalName || project.picInternalName2;
 
     return (
       <motion.div
@@ -413,131 +414,101 @@ export function ProjectManagement({ onProjectClick }: ProjectManagementProps) {
           )}
           onClick={() => onProjectClick(project.id)}
         >
-          <CardHeader className="pb-3">
+          <CardContent className="p-4 space-y-2.5">
+            {/* Row 1: Title + Category */}
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
-                <CardTitle className="text-sm font-semibold leading-tight truncate">
+                <p className="text-sm font-semibold leading-tight truncate">
                   {project.name}
-                </CardTitle>
-                <p className="mt-1 text-sm font-medium text-emerald-700 dark:text-emerald-400 truncate">
-                  {project.customer?.company || 'Unknown Customer'}
+                </p>
+                <p className="text-xs text-muted-foreground truncate mt-0.5">
+                  {project.customer?.company || 'No Customer'}
                 </p>
               </div>
-              <div className="flex shrink-0 gap-1.5">
-                <Badge
-                  variant="secondary"
-                  className={cn('text-[10px] font-medium', getCategoryClass(project.category))}
-                >
-                  {CATEGORY_LABELS[project.category]}
-                </Badge>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-center gap-2 flex-wrap">
-              <Badge
-                variant="secondary"
-                className={cn('text-[10px] font-medium', getStatusClass(project.status))}
-              >
-                {STATUS_LABELS[project.status]}
-              </Badge>
-              <Badge
-                variant="secondary"
-                className={cn('text-[10px] font-medium', getPriorityClass(project.priority))}
-              >
-                {PRIORITY_LABELS[project.priority]}
+              <Badge className={cn('text-[10px] shrink-0', getCategoryClass(project.category))}>
+                {CATEGORY_LABELS[project.category]}
               </Badge>
             </div>
 
-            {/* Progress */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Progress</span>
-                <span className="font-medium">{project.progress}%</span>
-              </div>
-              <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+            {/* Row 2: Status + Priority + Pending + Progress compact */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <Badge className={cn('text-[10px]', getStatusClass(project.status))}>
+                {STATUS_LABELS[project.status]}
+              </Badge>
+              <Badge variant="outline" className="text-[10px]">
+                {PRIORITY_LABELS[project.priority]}
+              </Badge>
+              {project.pendingType && project.pendingType !== 'NONE' && (
+                <Badge className={cn('text-[10px]', getPendingTypeClass(project.pendingType))}>
+                  !
+                </Badge>
+              )}
+              <span className="text-[11px] text-muted-foreground ml-auto tabular-nums">
+                {project.progress}%
+              </span>
+              <div className="h-1.5 w-16 overflow-hidden rounded-full bg-muted">
                 <div
-                  className={cn('h-full rounded-full transition-all', getProgressColor(project.progress))}
+                  className={cn('h-full rounded-full', getProgressColor(project.progress))}
                   style={{ width: `${project.progress}%` }}
                 />
               </div>
             </div>
 
-            {/* Budget */}
-            {project.budget > 0 && (
-              <div className="flex items-center gap-1.5 text-xs font-medium">
-                <DollarSign className="h-3.5 w-3.5 text-emerald-600" />
-                <span>{formatRupiah(project.budget)}</span>
+            {/* Row 3: Budget + Date */}
+            {(project.budget > 0 || dateRange) && (
+              <div className="flex items-center gap-3 text-[11px] text-muted-foreground flex-wrap">
+                {project.budget > 0 && (
+                  <span className="flex items-center gap-1">
+                    <DollarSign className="h-3 w-3 text-emerald-600" />
+                    {formatRupiah(project.budget)}
+                  </span>
+                )}
+                {dateRange && (
+                  <span className="flex items-center gap-1">
+                    <Calendar className="h-3 w-3" />
+                    {dateRange}
+                  </span>
+                )}
               </div>
             )}
 
-            {/* Date Range */}
-            {dateRange && (
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Calendar className="h-3 w-3" />
-                <span>{dateRange}</span>
+            {/* Row 4: PIC compact */}
+            {hasPic && (
+              <div className="flex items-center gap-2 text-[11px] text-muted-foreground flex-wrap">
+                {project.picInternalName && (
+                  <span className="flex items-center gap-1 truncate">
+                    <User className="h-3 w-3 shrink-0 text-blue-500" />
+                    <span className="truncate max-w-[120px]">{project.picInternalName}</span>
+                    {project.picInternalDivision?.name && (
+                      <span className="text-emerald-600 truncate max-w-[80px]">({project.picInternalDivision.name})</span>
+                    )}
+                  </span>
+                )}
+                {project.picInternalName2 && (
+                  <span className="flex items-center gap-1 truncate">
+                    <User className="h-3 w-3 shrink-0 text-violet-500" />
+                    <span className="truncate max-w-[120px]">{project.picInternalName2}</span>
+                    {project.picInternalDivision2?.name && (
+                      <span className="text-emerald-600 truncate max-w-[80px]">({project.picInternalDivision2.name})</span>
+                    )}
+                  </span>
+                )}
               </div>
             )}
 
-            {/* PIC Info */}
-            {project.picInternalName && (
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <User className="h-3 w-3" />
-                <span>
-                  PIC: {project.picInternalName}
-                  {project.picInternalDivision?.name && (
-                    <span className="text-emerald-600 dark:text-emerald-400"> ({project.picInternalDivision.name})</span>
-                  )}
-                </span>
-              </div>
-            )}
-            {project.picInternalName2 && (
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <User className="h-3 w-3" />
-                <span>
-                  PIC 2: {project.picInternalName2}
-                  {project.picInternalDivision2?.name && (
-                    <span className="text-emerald-600 dark:text-emerald-400"> ({project.picInternalDivision2.name})</span>
-                  )}
-                </span>
-              </div>
-            )}
-
-            {/* Pending Badge */}
-            {project.pendingType && project.pendingType !== 'NONE' && (
-              <Badge
-                variant="secondary"
-                className={cn('text-[10px] font-medium', getPendingTypeClass(project.pendingType))}
-              >
-                {PENDING_TYPE_LABELS[project.pendingType]}
-              </Badge>
-            )}
-
-            {/* Actions */}
+            {/* Actions — icon-only, compact */}
             <div
-              className="flex items-center gap-1 pt-1 border-t"
+              className="flex items-center gap-0.5 pt-1.5 border-t"
               onClick={(e) => e.stopPropagation()}
             >
               <StatusChangePopover project={project} />
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 text-xs"
-                onClick={(e) => handleShare(project.id, e)}
-              >
-                <Share2 className="mr-1 h-3 w-3" />
-                Share
+              <Button variant="ghost" size="icon" className="h-7 w-7" title="Share" onClick={(e) => handleShare(project.id, e)}>
+                <Share2 className="h-3.5 w-3.5" />
               </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 text-xs"
-                onClick={() => openEdit(project)}
-              >
-                <Pencil className="mr-1 h-3 w-3" />
-                Edit
+              <Button variant="ghost" size="icon" className="h-7 w-7" title="Edit" onClick={() => openEdit(project)}>
+                <Pencil className="h-3.5 w-3.5" />
               </Button>
-              <label className="cursor-pointer">
+              <label className="cursor-pointer" title="Attach file">
                 <input
                   type="file"
                   className="hidden"
@@ -549,19 +520,12 @@ export function ProjectManagement({ onProjectClick }: ProjectManagementProps) {
                     }
                   }}
                 />
-                <span className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-muted-foreground hover:text-emerald-600 hover:bg-emerald-50 transition-colors">
-                  <Paperclip className="h-3 w-3" />
-                  Attach
+                <span className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:text-emerald-600 hover:bg-emerald-50 transition-colors">
+                  <Paperclip className="h-3.5 w-3.5" />
                 </span>
               </label>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 text-xs text-destructive hover:text-destructive"
-                onClick={() => setDeleteTarget(project)}
-              >
-                <Trash2 className="mr-1 h-3 w-3" />
-                Delete
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" title="Delete" onClick={() => setDeleteTarget(project)}>
+                <Trash2 className="h-3.5 w-3.5" />
               </Button>
             </div>
           </CardContent>
