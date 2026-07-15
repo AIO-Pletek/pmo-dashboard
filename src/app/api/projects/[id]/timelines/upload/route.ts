@@ -122,7 +122,10 @@ export async function POST(
       return NextResponse.json({ error: 'Excel file is empty' }, { status: 400 })
     }
 
-    // Normalize headers
+    // Normalize headers + detect first column as fallback task name
+    const originalKeys = rows.length > 0 ? Object.keys(rows[0]) : []
+    const firstColKey = originalKeys.length > 0 ? normalizeHeader(originalKeys[0]) : ''
+
     const normalizedRows = rows.map((row) => {
       const mapped: Record<string, unknown> = {}
       for (const [key, val] of Object.entries(row)) {
@@ -131,6 +134,11 @@ export async function POST(
       }
       return mapped
     })
+
+    // Log detected headers for debugging
+    const headers = normalizedRows.length > 0 ? Object.keys(normalizedRows[0]) : []
+    console.log('Detected Excel headers:', headers)
+    console.log('First column key:', firstColKey)
 
     // Get max taskOrder
     const maxOrder = await db.timeline.aggregate({
@@ -145,8 +153,16 @@ export async function POST(
 
     for (let i = 0; i < normalizedRows.length; i++) {
       const row = normalizedRows[i]
-      const taskName = String(row.taskName || row.taskname || '').trim()
-      if (!taskName) {
+      // Try known task name fields, then fallback to first column
+      const taskName = String(
+        row.taskName || row.taskname ||
+        row.name || row.nama ||
+        row.activity || row.kegiatan ||
+        row.description || row.deskripsi ||
+        (firstColKey ? row[firstColKey] : '') ||
+        ''
+      ).trim()
+      if (!taskName || taskName === '[object Object]') {
         errors.push(`Row ${i + 2}: Missing task name, skipped`)
         continue
       }
@@ -189,8 +205,9 @@ export async function POST(
       data: {
         created: created.length,
         errors: errors.length,
-        tasks: created,
-        errorDetails: errors.length > 0 ? errors : undefined,
+        headers: headers,
+        tasks: created.slice(0, 5),
+        errorDetails: errors.length > 0 ? errors.slice(0, 5) : undefined,
       },
     })
   } catch (error) {

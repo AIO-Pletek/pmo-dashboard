@@ -915,7 +915,11 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
                       })
                       const data = await res.json()
                       if (!res.ok) throw new Error(data.error || 'Import failed')
-                      toast.success(`${data.data.created} tasks imported from Excel`)
+                      if (data.data.created === 0 && data.data.headers) {
+                        toast.warning(`No tasks imported. Headers found: ${data.data.headers.join(', ')}`)
+                      } else {
+                        toast.success(`${data.data.created} tasks imported from Excel`)
+                      }
                       // Refetch timelines
                       queryClient.invalidateQueries({ queryKey: ['timelines', projectId] })
                       queryClient.invalidateQueries({ queryKey: ['project', projectId] })
