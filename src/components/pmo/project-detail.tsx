@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import {
@@ -36,6 +37,7 @@ import {
   Paperclip,
   Download,
   Share2,
+  Upload,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -251,6 +253,7 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
   const deleteTimeline = useDeleteTimeline();
   const createReport = useCreateReport();
   const deleteReport = useDeleteReport();
+  const queryClient = useQueryClient();
   const updateProject = useUpdateProject();
 
   // Computed values
@@ -894,14 +897,48 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
         <TabsContent value="timeline" className="mt-4 space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold">Project Timeline</h3>
-            <Button
-              size="sm"
-              className="bg-emerald-600 hover:bg-emerald-700"
-              onClick={openCreateTimeline}
-            >
-              <Plus className="mr-1.5 h-3.5 w-3.5" />
-              Add Task
-            </Button>
+            <div className="flex items-center gap-2">
+              <label className="cursor-pointer">
+                <input
+                  type="file"
+                  accept=".xlsx,.xls,.csv"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0]
+                    if (!file) return
+                    const formData = new FormData()
+                    formData.append('file', file)
+                    try {
+                      const res = await fetch(`/api/projects/${projectId}/timelines/upload`, {
+                        method: 'POST',
+                        body: formData,
+                      })
+                      const data = await res.json()
+                      if (!res.ok) throw new Error(data.error || 'Import failed')
+                      toast.success(`${data.data.created} tasks imported from Excel`)
+                      // Refetch timelines
+                      queryClient.invalidateQueries({ queryKey: ['timelines', projectId] })
+                      queryClient.invalidateQueries({ queryKey: ['project', projectId] })
+                    } catch (err: any) {
+                      toast.error(err.message || 'Import failed')
+                    }
+                    e.target.value = ''
+                  }}
+                />
+                <span className="inline-flex items-center gap-1.5 rounded-md border border-dashed px-2.5 py-1.5 text-xs text-muted-foreground hover:text-emerald-600 hover:border-emerald-400 hover:bg-emerald-50 transition-colors">
+                  <Upload className="h-3.5 w-3.5" />
+                  Import Excel
+                </span>
+              </label>
+              <Button
+                size="sm"
+                className="bg-emerald-600 hover:bg-emerald-700"
+                onClick={openCreateTimeline}
+              >
+                <Plus className="mr-1.5 h-3.5 w-3.5" />
+                Add Task
+              </Button>
+            </div>
           </div>
 
           {timelines.length === 0 ? (
