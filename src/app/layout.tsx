@@ -16,6 +16,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "PMO Dashboard",
   description: "Project Management Office Dashboard - Track customers, projects, timelines, and reports.",
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({
