@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import {
   format,
@@ -34,6 +35,7 @@ import {
   History,
   Paperclip,
   Download,
+  Share2,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -367,11 +369,33 @@ export function ProjectDetail({ projectId, onBack }: ProjectDetailProps) {
       transition={{ duration: 0.3 }}
       className="space-y-6"
     >
-      {/* Back Button */}
-      <Button variant="ghost" size="sm" onClick={onBack} className="gap-2">
-        <ArrowLeft className="h-4 w-4" />
-        Back to Projects
-      </Button>
+      {/* Back Button + Share */}
+      <div className="flex items-center justify-between">
+        <Button variant="ghost" size="sm" onClick={onBack} className="gap-2">
+          <ArrowLeft className="h-4 w-4" />
+          Back to Projects
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-1.5 text-emerald-600 border-emerald-300 hover:bg-emerald-50"
+          onClick={async () => {
+            try {
+              const res = await fetch(`/api/projects/${projectId}/share`, { method: 'POST' })
+              const data = await res.json()
+              if (!res.ok) throw new Error(data.error)
+              const url = data.data.shareUrl || `${window.location.origin}/share/${data.data.shareToken}`
+              await navigator.clipboard.writeText(url)
+              toast.success('Share link copied to clipboard!')
+            } catch {
+              toast.error('Failed to generate share link')
+            }
+          }}
+        >
+          <Share2 className="h-3.5 w-3.5" />
+          Share
+        </Button>
+      </div>
 
       {/* Project Header */}
       <Card>

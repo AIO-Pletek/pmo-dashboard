@@ -91,6 +91,7 @@ export interface Project {
   picInternalName2: string;
   picInternalDivisionId2: string | null;
   picExternalName: string;
+  shareToken?: string | null;
   pendingType: PendingType;
   pendingNote: string;
   createdAt: string;

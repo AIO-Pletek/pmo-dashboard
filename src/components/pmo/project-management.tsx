@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import {
@@ -17,6 +18,7 @@ import {
   ArrowRight,
   User,
   Paperclip,
+  Share2,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -315,6 +317,20 @@ export function ProjectManagement({ onProjectClick }: ProjectManagementProps) {
     }
   };
 
+  const handleShare = async (projectId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      const res = await fetch(`/api/projects/${projectId}/share`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed');
+      const shareUrl = data.data.shareUrl || `${window.location.origin}/share/${data.data.shareToken}`;
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success('Share link copied to clipboard!');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to generate share link');
+    }
+  };
+
   const handleQuickStatusChange = (projectId: string, newStatus: ProjectStatus) => {
     updateProject.mutate({ id: projectId, status: newStatus });
     setStatusPopoverId(null);
@@ -503,6 +519,15 @@ export function ProjectManagement({ onProjectClick }: ProjectManagementProps) {
               onClick={(e) => e.stopPropagation()}
             >
               <StatusChangePopover project={project} />
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={(e) => handleShare(project.id, e)}
+              >
+                <Share2 className="mr-1 h-3 w-3" />
+                Share
+              </Button>
               <Button
                 variant="ghost"
                 size="sm"
